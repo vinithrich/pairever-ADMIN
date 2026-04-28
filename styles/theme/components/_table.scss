@@ -1,0 +1,50 @@
+//
+// Extend from bootstrap
+//
+
+// Table
+
+
+
+.table .thead-light th{
+  color: $white;
+}
+
+
+
+
+.table thead th {
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  text-transform: capitalize;
+  text-align: center;
+  font-size: 0.875rem;
+  color: $white;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom-color: $brand-border;
+
+}
+
+.table tbody td {
+  text-align: center;
+  color: $body-color;
+  border-color: $brand-border;
+  background: transparent;
+}
+
+.table {
+  color: $body-color;
+  --bs-table-color: #{$body-color};
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #{$brand-border};
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.04);
+}
+
+.table-light {
+  --bs-table-bg: rgba(255, 255, 255, 0.04);
+  --bs-table-color: #{$white};
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.06);
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.08);
+  --bs-table-border-color: #{$brand-border};
+}

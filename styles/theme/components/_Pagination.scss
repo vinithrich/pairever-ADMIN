@@ -1,0 +1,104 @@
+// styles/pagination.scss
+
+.table-pagination {
+  .pagination {
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid $brand-border;
+    border-radius: 0.9rem;
+    background: rgba(18, 21, 28, 0.78);
+    backdrop-filter: blur(10px);
+    --bs-pagination-color: #{$white};
+    --bs-pagination-bg: rgba(255, 255, 255, 0.02);
+    --bs-pagination-border-color: rgba(255, 255, 255, 0.08);
+    --bs-pagination-hover-color: #{$white};
+    --bs-pagination-hover-bg: rgba(123, 58, 237, 0.14);
+    --bs-pagination-hover-border-color: rgba(123, 58, 237, 0.3);
+    --bs-pagination-focus-color: #{$white};
+    --bs-pagination-focus-bg: rgba(123, 58, 237, 0.14);
+    --bs-pagination-focus-border-color: rgba(123, 58, 237, 0.3);
+    --bs-pagination-disabled-color: rgba(255, 255, 255, 0.55);
+    --bs-pagination-disabled-bg: rgba(255, 255, 255, 0.06);
+    --bs-pagination-disabled-border-color: rgba(255, 255, 255, 0.08);
+    --bs-pagination-active-color: #{$white};
+    --bs-pagination-active-bg: #{$primary};
+    --bs-pagination-active-border-color: #{$primary};
+  }
+
+  .page-item {
+    .page-link {
+      min-width: 2.5rem;
+      height: 2.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.85rem;
+      color: $white !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-radius: 0.7rem;
+      box-shadow: none;
+      transition: all 0.2s ease;
+      font-weight: 600;
+      text-decoration: none;
+
+      &:hover {
+        color: $white !important;
+        background: rgba(123, 58, 237, 0.14) !important;
+        border-color: rgba(123, 58, 237, 0.3) !important;
+      }
+
+      &:focus {
+        color: $white !important;
+        background: rgba(123, 58, 237, 0.14) !important;
+        border-color: rgba($primary, 0.6) !important;
+        box-shadow: 0 0 0 0.15rem rgba($primary, 0.15);
+      }
+    }
+
+    &.active .page-link {
+      z-index: 3;
+      color: $white !important;
+      background: linear-gradient(135deg, $primary 0%, darken($primary, 12%) 100%) !important;
+      border-color: rgba($primary, 0.9) !important;
+      font-weight: 700;
+      box-shadow: 0 10px 20px rgba(123, 58, 237, 0.22);
+    }
+
+    &.disabled .page-link {
+      color: rgba($white, 0.45) !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      opacity: 1;
+    }
+  }
+
+  .page-item:first-child .page-link,
+  .page-item:last-child .page-link {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .page-item.disabled .page-link[aria-label="More"] {
+    color: rgba($white, 0.6) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .page-item.disabled .page-link,
+  .page-item.disabled span.page-link,
+  .page-item .page-link[aria-label="Previous"],
+  .page-item .page-link[aria-label="Next"] {
+    color: rgba($white, 0.72) !important;
+  }
+
+  .page-item .page-link span[aria-hidden="true"] {
+    color: inherit !important;
+  }
+
+  .page-item.active .page-link:hover,
+  .page-item.active .page-link:focus {
+    color: $white !important;
+    background: linear-gradient(135deg, lighten($primary, 2%) 0%, darken($primary, 10%) 100%) !important;
+  }
+}
+  

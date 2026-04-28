@@ -1,0 +1,195 @@
+// Navbar Vertcial
+
+.navbar-vertical {
+
+  margin-left: -17rem;
+  display: block;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 264px;
+  padding: 0rem;
+  background:
+    radial-gradient(circle at top, rgba(123, 58, 237, 0.22), transparent 32%),
+    linear-gradient(180deg, #171b24 0%, #12151c 100%) !important;
+  border-right: 1px solid $brand-border;
+  -webkit-transition: margin 0.25s ease-out;
+  -moz-transition: margin 0.25s ease-out;
+  -o-transition: margin 0.25s ease-out;
+  transition: margin 0.25s ease-out;
+  z-index: 11;
+
+  .slimScrollDiv {
+    height: 100% !important;
+    overflow-y: auto;
+  }
+
+  .nav-scroller {
+    height: 100% !important;
+    overflow-y: auto;
+  }
+
+  .navbar-brand {
+    padding: 1rem 1.5rem 1.5rem;
+    margin-right: 0px;
+    display: block;
+    color: $white;
+
+    img {
+      height: 1.875rem;
+    }
+  }
+
+  .navbar-heading {
+    color: rgba($white, 0.45);
+    padding: 1rem 1.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08rem;
+    font-weight: 700;
+  }
+
+  .navbar-nav {
+    .nav-item {
+      .nav-link {
+        padding: 0.5rem 1.5rem;
+        display: flex;
+        align-items: center;
+        color: rgba($white, 0.72);
+        font-weight: 600;
+        line-height: 2.3;
+        -webkit-transition: all 0.5s;
+        white-space: nowrap;
+        transition: all 0.5s;
+        border-left: 3px solid transparent;
+        border-radius: 0.875rem;
+        margin: 0.2rem 0.875rem;
+        background-color: transparent;
+        &:hover {
+          color: $white;
+          background: rgba($white, 0.05);
+          border-left-color: $brand-lime-end;
+        }
+
+        &:hover .nav-icon {
+          color: $brand-lime-start;
+          opacity: 1;
+        }
+
+        &.active {
+          color: #12151c;
+          background: linear-gradient(135deg, $brand-lime-start 0%, $brand-lime-end 100%);
+          border-left-color: $primary;
+          box-shadow: 0 12px 24px rgba(174, 204, 0, 0.22);
+
+        }
+
+        &.active .nav-icon {
+          color: #12151c;
+          opacity: 1;
+        }
+      }
+
+      .nav-link[data-bs-toggle="collapse"] {
+        position: relative;
+
+        &:after {
+          display: block;
+          content: "";
+          background: url(../../../public/fonts/feather-icons/icons/chevron-down.svg) !important;
+          font-family: Feather;
+          margin-left: auto;
+          transition: 0.5s ease;
+          position: absolute;
+          right: 1.5rem;
+          height: 24px;
+          width: 24px;
+          filter: brightness(0) invert(1);
+          // -webkit-filter: brightness(0) invert(1);
+          // filter: brightness(0) invert(1);
+          transform: scale(0.7);
+        }
+
+      }
+
+
+    }
+
+    .nav-icon {
+      // opacity: 0.6;
+      font-size: .875rem;
+      -webkit-transition: all 0.5s;
+      transition: all 0.5s;
+    }
+
+    .sub-nav-icon {
+      font-size: .35rem;
+      margin-right: .5rem;
+
+    }
+
+    .nav {
+      .nav-item {
+        .nav-link {
+          color: rgba($white, 0.62);
+          padding: 0.25rem 3rem;
+
+          &:hover {
+            color: $white;
+          }
+
+          &.active {
+            color: $brand-lime-start;
+          }
+        }
+
+        .nav {
+          .nav-item {
+            .nav-link {
+              color: rgba($white, 0.62);
+              padding: 0.25rem 3.5rem;
+
+              &:hover {
+                color: $white;
+              }
+
+              &.active {
+                color: $brand-lime-start;
+              }
+            }
+
+            .nav {
+              .nav-item {
+                .nav-link {
+                  color: black;
+                  padding: 0.25rem 4.2rem;
+
+                  &:hover {
+                    color: $white;
+                  }
+
+                  &.active {
+                    color: $white;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.vertical-overflow {
+  overflow-y: auto;
+}
+
+.collapse.in {
+  display: block;
+
+
+
+
+}

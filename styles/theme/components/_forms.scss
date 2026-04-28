@@ -1,0 +1,122 @@
+//
+// Extended from bootstrap
+//
+// form
+
+.form-control-flush {
+  border-top: 0px;
+  border-left: 0px;
+  border-right: 0px;
+  padding-left: 0px;
+  border-radius: 0px;
+
+  &:focus {
+    color: $white;
+    background-color: transparent;
+    border-bottom-color: $gray-400;
+    outline: 0;
+    box-shadow: none;
+  }
+}
+
+.form-check-input {
+  &:checked {
+    background-color: $primary;
+    border-color: $primary;
+  }
+
+  &:focus {
+    border-color: $primary;
+    outline: 0;
+    box-shadow: none;
+  }
+}
+
+.form-control,
+.form-select {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid $brand-border;
+  color: $white;
+
+  &::placeholder {
+    color: rgba($white, 0.4);
+  }
+
+  &:focus {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba($primary, 0.7);
+    color: $white;
+    box-shadow: 0 0 0 0.2rem rgba($primary, 0.12);
+  }
+}
+
+.form-control:disabled,
+.form-control[readonly],
+.form-select:disabled {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: rgba($white, 0.92);
+  opacity: 1;
+}
+
+.form-select option,
+select option {
+  background: $brand-surface;
+  color: $white;
+}
+
+.form-label,
+.form-check-label,
+.form-text {
+  color: $white;
+}
+
+.form-text,
+.form-control::placeholder,
+.form-select::placeholder {
+  color: $brand-text-muted !important;
+}
+
+.form-check-input {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba($white, 0.16);
+}
+
+.form-control[type="file"] {
+  color: rgba($white, 0.92);
+}
+
+.form-control[type="file"]::file-selector-button {
+  color: #12151c;
+  background: linear-gradient(135deg, $brand-lime-start 0%, $brand-lime-end 100%);
+  border: 0;
+  margin-right: 1rem;
+}
+
+.form-control[type="file"]:hover::file-selector-button {
+  background: linear-gradient(135deg, lighten($brand-lime-start, 2%) 0%, darken($brand-lime-end, 4%) 100%);
+}
+
+.input-group-text {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid $brand-border;
+  color: $white;
+}
+
+.input-group .form-control + .input-group-text {
+  border-left: 0;
+}
+
+.input-group > .form-control:focus + .input-group-text,
+.input-group > .input-group-text:has(+ .form-control:focus),
+.input-group-text.password-toggle:hover,
+.input-group-text.password-toggle:focus {
+  background: rgba($primary, 0.14);
+  border-color: rgba($primary, 0.45);
+  color: $white;
+}
+
+.input-group-text.password-toggle {
+  cursor: pointer;
+  min-width: 3rem;
+  justify-content: center;
+}

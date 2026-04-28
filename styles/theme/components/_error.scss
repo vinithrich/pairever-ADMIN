@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@800&family=Roboto:wght@100;300&display=swap');
+
+.error-page {
+  * {
+    box-sizing: border-box;
+    transform-style: preserve-3d;
+  }
+
+  @property --swing-x {
+    initial-value: 0;
+    inherits: false;
+    syntax: '<integer>';
+  }
+
+  @property --swing-y {
+    initial-value: 0;
+    inherits: false;
+    syntax: '<integer>';
+  }
+
+  min-height: 100vh;
+  display: flex;
+  font-family: 'Roboto', sans-serif;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #383846;
+  color: hsl(0, 0%, 98%);
+  perspective: 1200px;
+  overflow: hidden;
+
+  h1 {
+    position: relative;
+    animation: swing 2s infinite alternate ease-in-out;
+    font-size: clamp(5rem, 40vmin, 10rem);
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    margin-bottom: 1rem;
+    letter-spacing: 1rem;
+    transform: translate3d(0, 0, 0vmin);
+    --x: calc(50% + (var(--swing-x) * 0.5) * 1%);
+    background: radial-gradient(hsl(53, 0%, 90%), hsl(53, 0%, 48%) 45%) var(--x) 100% / 200% 200%;
+    -webkit-background-clip: text;
+    color: transparent;
+
+    &::after {
+      content: "404";
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: hsl(0, 0%, 0%);
+      filter: blur(1.5vmin);
+      transform: scale(1.05) translate3d(0, 12%, -10vmin) translate(calc((var(--swing-x, 0) * 0.05) * 1%), calc((var(--swing-y) * 0.05) * 1%));
+      animation: swing 2s infinite alternate ease-in-out;
+    }
+  }
+
+  h5 {
+    text-align: left;
+    font-family: "DM Sans", Arial, sans-serif !important;
+  }
+
+  a {
+    text-decoration: none;
+    color: white;
+    padding: 0.5px 1rem;
+    border-radius: 4rem;
+    font-size: 0.875rem;
+    letter-spacing: 0.05rem;
+    font-family: "DM Sans", Arial, sans-serif !important;
+  }
+
+  .error-route {
+    &-key {
+      font-size: 20px;
+      font-weight: 700;
+    }
+  }
+
+  .error-page-img {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(38deg) brightness(99%) contrast(106%);
+    margin-right: 10px;
+  }
+
+  .error-sub-head {
+    font-weight: 100;
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  .cloak {
+    animation: swing 2s infinite alternate-reverse ease-in-out;
+    height: 100%;
+    width: 100%;
+    transform-origin: 50% 30%;
+    transform: rotate(calc(var(--swing-x) * -0.25deg));
+    background: radial-gradient(40% 40% at 50% 42%, transparent, black 35%);
+    
+    &__wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+      overflow: hidden;
+    }
+
+    &__container {
+      height: 250vmax;
+      width: 250vmax;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .info {
+    text-align: center;
+    line-height: 1.5;
+    max-width: clamp(50rem, 90vmin, 25rem);
+  }
+
+  .error-route {
+    p {
+      margin-bottom: 0;
+      text-align: center;
+    }
+  }
+}
+
+@keyframes swing {
+  0% {
+    --swing-x: -100;
+    --swing-y: -100;
+  }
+
+  50% {
+    --swing-y: 0;
+  }
+
+  100% {
+    --swing-y: -100;
+    --swing-x: 100;
+  }
+}
+
+@media all and (max-width: 767px) {
+  .error-route {
+    display: inline !important;
+    margin-top: 25px;
+    
+    &-key {
+      font-size: 16px;
+    }
+  }
+
+  .info h2 {
+    font-size: calc(1.295rem + .9vw);
+  }
+}

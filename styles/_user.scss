@@ -1,0 +1,119 @@
+// 
+// user.scss
+// Use this to write your custom SCSS
+//
+.react-pattern-lock__pattern-wrapper {
+    background-color: grey;
+}
+
+.invaliderror {
+    color: red;
+    margin-bottom: 0;
+    font-size: 13px;
+    margin-left: 10px;
+}
+
+.go_back {
+    font-size: 30px;
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    width: fit-content;
+
+}
+
+.editlist {
+    cursor: pointer;
+    // margin-left: 15px;
+
+    &:hover {
+        color: $brand-lime-start;
+    }
+}
+
+.deletelist {
+    cursor: pointer;
+    margin-left: 15px;
+
+    &:hover {
+        color: red;
+    }
+}
+
+.hstack {
+    flex-wrap: wrap;
+}
+
+.jobtabs {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+
+    li {
+        button {
+            width: 300px;
+        }
+
+        button:not(:disabled),
+        [type=button]:not(:disabled),
+        [type=reset]:not(:disabled),
+        [type=submit]:not(:disabled) {
+            cursor: pointer;
+            border: 1px solid rgba($primary, 0.6);
+            color: $white;
+            background: rgba(255, 255, 255, 0.03);
+        }
+    }
+}
+
+.faqlabel {
+    font-weight: 600;
+}
+
+body {
+    background: $body-bg;
+    color: $body-color;
+}
+
+a {
+    color: $white;
+
+    &:hover {
+        color: $brand-lime-start;
+    }
+}
+
+.text-white-50,
+.text-muted {
+    color: $brand-text-muted !important;
+}
+
+.alert {
+    border-color: $brand-border;
+    color: $white;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.alert-light {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: $white !important;
+}
+
+.alert-light .text-muted,
+.alert .text-muted,
+.small.text-muted {
+    color: rgba($white, 0.72) !important;
+}
+
+.border,
+.border-top,
+.border-bottom,
+.border-start,
+.border-end {
+    border-color: $brand-border !important;
+}
+
+.go_back .nav-icon,
+.go_back i {
+    color: $brand-lime-start !important;
+}

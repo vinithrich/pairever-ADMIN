@@ -1,0 +1,62 @@
+//
+// Extended from bootstrap
+//
+
+
+// Badge dot
+
+.badge-dot{
+    font-size: 0;
+    vertical-align: middle;
+    padding: 0;
+    border-radius: 50%;
+    line-height: 1;
+    height: .5rem;
+    min-height: .5rem;
+    width: .5rem;
+    min-width: .5rem;
+    display: inline-block !important;
+
+}
+
+.badge {
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.bg-primary,
+.badge.bg-primary {
+    background: linear-gradient(135deg, rgba($primary, 0.95) 0%, darken($primary, 12%) 100%) !important;
+    color: $white !important;
+}
+
+.bg-success,
+.badge.bg-success {
+    background: rgba(25, 135, 84, 0.18) !important;
+    color: #8ef0bb !important;
+}
+
+.bg-warning,
+.badge.bg-warning {
+    background: rgba(245, 158, 11, 0.18) !important;
+    color: #ffd166 !important;
+}
+
+.bg-danger,
+.badge.bg-danger {
+    background: rgba(220, 53, 69, 0.18) !important;
+    color: #ff9faf !important;
+}
+
+.bg-light,
+.badge.bg-light {
+    background: rgba(255, 255, 255, 0.06) !important;
+    color: $white !important;
+}
+
+.bg-secondary,
+.badge.bg-secondary {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: rgba($white, 0.88) !important;
+}

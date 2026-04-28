@@ -1,0 +1,10 @@
+.nav-pills .nav-link.active{
+    background: #f5f5f7;
+    color: black !important;
+    border: black;
+}
+.jobtabs li button:not(:disabled), .jobtabs li [type=button]:not(:disabled){
+    color: black;
+    border: 1px solid white !important;
+    
+}
