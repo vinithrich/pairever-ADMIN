@@ -15,7 +15,7 @@ import SortableHeader from "@/components/SortableHeader";
 import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
-import { GetUserListApi } from "@/helper/Redux/ReduxThunk/Homepage";
+import { DeleteUserApi, GetUserListApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
 const ManageInvoice = () => {
   const router = useRouter();
@@ -26,6 +26,7 @@ const ManageInvoice = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [deletingUserId, setDeletingUserId] = useState("");
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -79,6 +80,43 @@ const ManageInvoice = () => {
         prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   };
+
+  const handleDeleteUser = useCallback(
+    async (userId) => {
+      if (!userId || deletingUserId) {
+        return;
+      }
+
+      const isConfirmed = window.confirm(
+        "Are you sure you want to delete this user?"
+      );
+
+      if (!isConfirmed) {
+        return;
+      }
+
+      setDeletingUserId(userId);
+
+      try {
+        const resp = await dispatch(DeleteUserApi({ userId }));
+
+        if (resp?.status) {
+          Notiflix.Notify.success(resp?.message || "User deleted successfully");
+
+          if (userList.length === 1 && currentPage > 1) {
+            setCurrentPage((prev) => prev - 1);
+          } else {
+            await getUserDetails();
+          }
+        } else {
+          Notiflix.Notify.failure(resp?.message || "Failed to delete user");
+        }
+      } finally {
+        setDeletingUserId("");
+      }
+    },
+    [currentPage, deletingUserId, dispatch, getUserDetails, userList.length]
+  );
 
   const sortedUsers = useMemo(() => {
     const getValue = {
@@ -178,12 +216,21 @@ const ManageInvoice = () => {
                           : "-"}
                       </td>
                       <td>
-                        <button
-                          className="btn btn-sm btn-primary"
-                          onClick={() => router.push(`/user-management/${user._id}`)}
-                        >
-                          View
-                        </button>
+                        <div className="d-flex gap-2">
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => router.push(`/user-management/${user._id}`)}
+                          >
+                            View
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDeleteUser(user._id)}
+                            disabled={deletingUserId === user._id}
+                          >
+                            {deletingUserId === user._id ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

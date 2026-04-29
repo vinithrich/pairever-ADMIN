@@ -379,6 +379,43 @@ export const GetSingleUserApi =
       }
     };
 
+export const DeleteUserApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await fetch(`${apiHelper.authUrl}/deleteUser`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+
+        const responseData = await response.json().catch(() => null);
+        const fallbackMessage =
+          response.status === 400
+            ? "userId is required"
+            : response.status === 404
+              ? "User record not found"
+              : "Failed to delete user";
+
+        const result = responseData || {
+          status: response.ok,
+          message: fallbackMessage,
+        };
+
+        callback(result);
+        return result;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
 export const GetStaffListApi =
   (params = {}, callback = () => { }) =>
     async (dispatch) => {

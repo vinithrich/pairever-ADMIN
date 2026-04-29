@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useDispatch } from "react-redux";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
@@ -12,10 +12,13 @@ import {
 const AdBannerPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const fileInputRef = useRef(null);
 
   const [bannerImage, setBannerImage] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [amount, setAmount] = useState("");
+  const [coins, setCoins] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,8 +48,12 @@ const AdBannerPage = () => {
             resp?.data?.bannerImage ||
             "";
           setBannerImage(image);
+          setAmount(resp?.data?.amount ?? "");
+          setCoins(resp?.data?.coins ?? resp?.data?.coin ?? "");
         } else {
           setBannerImage("");
+          setAmount("");
+          setCoins("");
           Notiflix.Notify.failure(
             resp?.message || "Failed to fetch ad banner"
           );
@@ -78,16 +85,31 @@ const AdBannerPage = () => {
     setSelectedFile(file);
   };
 
+  const handleClear = () => {
+    setSelectedFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedFile) {
-      Notiflix.Notify.failure("Please select one banner image");
+    if (!selectedFile && amount === "" && coins === "") {
+      Notiflix.Notify.failure("Please select one banner image or enter amount/coins");
       return;
     }
 
     const payload = new FormData();
-    payload.append("image", selectedFile);
+
+    if (selectedFile) {
+      payload.append("image", selectedFile);
+    }
+
+    payload.append("amount", amount);
+    payload.append("coins", coins);
+    payload.append("coin", coins);
 
     setIsSubmitting(true);
 
@@ -97,7 +119,7 @@ const AdBannerPage = () => {
           Notiflix.Notify.success(
             resp?.message || "Ad banner updated successfully"
           );
-          setSelectedFile(null);
+          handleClear();
           fetchBanner();
         } else {
           Notiflix.Notify.failure(
@@ -153,6 +175,7 @@ const AdBannerPage = () => {
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-bold">Upload New Banner</Form.Label>
                   <Form.Control
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleFileChange}
@@ -162,6 +185,35 @@ const AdBannerPage = () => {
                   </Form.Text>
                 </Form.Group>
 
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">Amount</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Enter amount"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-bold">Coins</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Enter coins"
+                        value={coins}
+                        onChange={(e) => setCoins(e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
                 <div className="d-flex gap-2">
                   <Button type="submit" disabled={isSubmitting || isLoading}>
                     {isSubmitting ? "Updating..." : "Update Banner"}
@@ -169,7 +221,7 @@ const AdBannerPage = () => {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={() => setSelectedFile(null)}
+                    onClick={handleClear}
                     disabled={isSubmitting}
                   >
                     Clear
