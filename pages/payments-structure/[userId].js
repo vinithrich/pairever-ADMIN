@@ -18,6 +18,11 @@ import {
   updatePaymentStructureApi,
 } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const BATCH_STATUS_OPTIONS = ["Hot", "New", "Best Seller"];
+
+const getBatchStatus = (item = {}) =>
+  item.batchStatus || item.badgeStatus || item.adBatchStatus || "";
+
 const ManageInvoice = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -33,6 +38,7 @@ console.log("selectedItem",selectedItem)
     amount: "",
     offerAmount: "",
     offerStatus: false,
+    batchStatus: "",
     image: "",
     imageFile: null,
   });
@@ -72,6 +78,7 @@ console.log("selectedItem",selectedItem)
       offerAmount: item.offerAmount || "",
       // backend stores string "true"/"false"
       offerStatus: item.offerStatus === "true",
+      batchStatus: getBatchStatus(item),
       image: item.image || "",
       imageFile: null,
     });
@@ -110,6 +117,8 @@ console.log("selectedItem",selectedItem)
       "offerStatus",
       formData.offerStatus ? "true" : "false"
     );
+    payload.append("batchStatus", formData.batchStatus);
+    payload.append("badgeStatus", formData.batchStatus);
 
     if (formData.imageFile) {
       payload.append("image", formData.imageFile);
@@ -156,6 +165,7 @@ console.log("selectedItem",selectedItem)
                   <th>Amount</th>
                   <th>Offer Amount</th>
                   <th>Status</th>
+                  <th>Batch Status</th>
                   <th>Image</th>
                   <th>Action</th>
                 </tr>
@@ -178,6 +188,15 @@ console.log("selectedItem",selectedItem)
                           <span className="badge bg-secondary">
                             Inactive
                           </span>
+                        )}
+                      </td>
+                      <td>
+                        {getBatchStatus(item) ? (
+                          <span className="badge bg-info">
+                            {getBatchStatus(item)}
+                          </span>
+                        ) : (
+                          "-"
                         )}
                       </td>
                       <td>
@@ -205,7 +224,7 @@ console.log("selectedItem",selectedItem)
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center">
+                    <td colSpan="8" className="text-center">
                       No Data Found
                     </td>
                   </tr>
@@ -261,6 +280,22 @@ console.log("selectedItem",selectedItem)
               checked={formData.offerStatus}
               onChange={handleChange}
             />
+
+            <Form.Group className="mt-3">
+              <Form.Label>Batch Status</Form.Label>
+              <Form.Select
+                name="batchStatus"
+                value={formData.batchStatus}
+                onChange={handleChange}
+              >
+                <option value="">None</option>
+                {BATCH_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
 
             <Form.Group className="mt-3">
               <Form.Label>Image</Form.Label>

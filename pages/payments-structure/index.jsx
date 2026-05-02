@@ -17,6 +17,9 @@ import { sortRows } from "@/helper/tableSort";
 import Notiflix from "notiflix";
 import { getPaymentStructureApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const getBatchStatus = (user = {}) =>
+  user.batchStatus || user.badgeStatus || user.adBatchStatus || "";
+
 const ManageInvoice = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -88,6 +91,7 @@ const ManageInvoice = () => {
       amount: (user) => user.amount || "",
       offerAmount: (user) => user.offerAmount || "",
       offerStatus: (user) => user.offerStatus || "",
+      batchStatus: (user) => getBatchStatus(user),
     };
 
     return sortRows(
@@ -141,6 +145,7 @@ const ManageInvoice = () => {
                   {/* <th>DOB</th> */}
                   {/* <th>Language</th> */}
                   <th><SortableHeader label="offerStatus" sortKey="offerStatus" sortConfig={sortConfig} onSort={handleSort} /></th>
+                  <th><SortableHeader label="Batch Status" sortKey="batchStatus" sortConfig={sortConfig} onSort={handleSort} /></th>
                   {/* <th>Role</th> */}
                   {/* <th>Status</th> */}
                   <th>Action</th>
@@ -174,6 +179,13 @@ const ManageInvoice = () => {
                         )}
                       </td>
                       <td>
+                        {getBatchStatus(user) ? (
+                          <span className="badge bg-info">{getBatchStatus(user)}</span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td>
                         <button
                           className="btn btn-sm btn-primary"
                           onClick={() => router.push(`/payments-structure/${user._id}`)}
@@ -185,7 +197,7 @@ const ManageInvoice = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center">
+                    <td colSpan="8" className="text-center">
                       No Users Found
                     </td>
                   </tr>
