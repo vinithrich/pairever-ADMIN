@@ -20,6 +20,7 @@ import { sortRows } from "@/helper/tableSort";
 import {
   GetSingleStaffApi,
   GetStaffWithdrawHistoryApi,
+  SendStaffWarningPushApi,
   UpdateStaffApi,
   UpdateStaffApprovalApi,
 } from "@/helper/Redux/ReduxThunk/Homepage";
@@ -44,7 +45,9 @@ const StaffDetail = () => {
   const [callCurrentPage, setCallCurrentPage] = useState(1);
   const [withdrawCurrentPage, setWithdrawCurrentPage] = useState(1);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     bio: "",
@@ -58,6 +61,10 @@ const StaffDetail = () => {
     formStatus: "",
     image: "",
     imageFile: null,
+  });
+  const [notificationForm, setNotificationForm] = useState({
+    title: "Reminder",
+    body: "",
   });
 
   const buildFormData = (staffData) => ({
@@ -175,11 +182,37 @@ const StaffDetail = () => {
     setShowEditModal(true);
   };
 
+  const openNotifyModal = () => {
+    setNotificationForm({
+      title: "Reminder",
+      body: "",
+    });
+    setShowNotifyModal(true);
+  };
+
+  const closeNotifyModal = (forceClose = false) => {
+    if (isSendingNotification && !forceClose) return;
+
+    setShowNotifyModal(false);
+    setNotificationForm({
+      title: "Reminder",
+      body: "",
+    });
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleNotificationChange = (e) => {
+    const { name, value } = e.target;
+    setNotificationForm((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -248,7 +281,56 @@ const StaffDetail = () => {
     setIsUpdating(false);
   };
 
+  const handleSendNotification = async () => {
+    if (!staff?._id) return;
+
+    const title = notificationForm.title.trim();
+    const body = notificationForm.body.trim();
+
+    if (!title || !body) {
+      Notiflix.Notify.failure("Please enter notification title and message");
+      return;
+    }
+
+    setIsSendingNotification(true);
+
+    await dispatch(
+      SendStaffWarningPushApi(
+        {
+          title,
+          body,
+          roleTarget: "staff",
+          userId: staff._id,
+          staffId: staff._id,
+          targetUserId: staff._id,
+          memberID: staff.memberID,
+          screen: "staff_message",
+        },
+        (resp) => {
+          const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+          if (isSuccess) {
+            Notiflix.Notify.success(resp?.message || "Notification sent");
+            setIsSendingNotification(false);
+            closeNotifyModal(true);
+          } else {
+            Notiflix.Notify.failure(
+              resp?.message || "Failed to send notification"
+            );
+            setIsSendingNotification(false);
+          }
+        }
+      )
+    );
+  };
+
   const handleApprove = async () => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to approve ${staff?.name || "this staff"}?`
+    );
+
+    if (!isConfirmed) return;
+
     await dispatch(
       UpdateStaffApprovalApi(
         { staffId: staff._id, status: "1" },
@@ -265,6 +347,12 @@ const StaffDetail = () => {
   };
 
   const handleReject = async () => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to reject ${staff?.name || "this staff"}?`
+    );
+
+    if (!isConfirmed) return;
+
     await dispatch(
       UpdateStaffApprovalApi(
         { staffId: staff._id, status: "2" },
@@ -525,6 +613,14 @@ const StaffDetail = () => {
                   onClick={openEditModal}
                 >
                   Edit Staff
+                </Button>
+                <Button
+                  size="sm"
+                  variant="info"
+                  className="me-2"
+                  onClick={openNotifyModal}
+                >
+                  Send Notification
                 </Button>
 
                 {staff.isApproved === "0" && (
@@ -912,6 +1008,57 @@ const StaffDetail = () => {
             disabled={isUpdating}
           >
             {isUpdating ? "Updating..." : "Update Staff"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showNotifyModal} onHide={closeNotifyModal} centered>
+        <Modal.Header closeButton={!isSendingNotification}>
+          <Modal.Title>Send Staff Notification</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p className="text-muted mb-3">
+            Sending to: <b>{staff?.name || staff?.phone || "-"}</b>
+          </p>
+
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Title</Form.Label>
+              <Form.Control
+                name="title"
+                value={notificationForm.title}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Notification title"
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Message</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                name="body"
+                value={notificationForm.body}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Type message for this staff"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={closeNotifyModal}
+            disabled={isSendingNotification}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSendNotification} disabled={isSendingNotification}>
+            {isSendingNotification ? "Sending..." : "Send Notification"}
           </Button>
         </Modal.Footer>
       </Modal>

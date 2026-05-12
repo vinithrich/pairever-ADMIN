@@ -8,6 +8,8 @@ import {
   Form,
   Card,
   Table,
+  Modal,
+  Button,
 } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import TablePagination from "@/components/TablePagination";
@@ -15,7 +17,11 @@ import SortableHeader from "@/components/SortableHeader";
 import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
-import { DeleteStaffApi, GetStaffListApi } from "@/helper/Redux/ReduxThunk/Homepage";
+import {
+  DeleteStaffApi,
+  GetStaffListApi,
+  SendStaffWarningPushApi,
+} from "@/helper/Redux/ReduxThunk/Homepage";
 
 const formatAmount = (value) => (Number(value) || 0).toFixed(2);
 
@@ -29,6 +35,13 @@ const ManageInvoice = () => {
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [deletingStaffId, setDeletingStaffId] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [notificationForm, setNotificationForm] = useState({
+    title: "",
+    body: "",
+  });
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -120,6 +133,80 @@ const ManageInvoice = () => {
     [currentPage, deletingStaffId, dispatch, GetStaffDetails, userList.length]
   );
 
+  const openNotifyModal = (staff) => {
+    setSelectedStaff(staff);
+    setNotificationForm({
+      title: "Reminder",
+      body: "",
+    });
+    setShowNotifyModal(true);
+  };
+
+  const closeNotifyModal = (forceClose = false) => {
+    if (isSendingNotification && !forceClose) return;
+
+    setShowNotifyModal(false);
+    setSelectedStaff(null);
+    setNotificationForm({
+      title: "",
+      body: "",
+    });
+  };
+
+  const handleNotificationChange = (e) => {
+    const { name, value } = e.target;
+    setNotificationForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSendNotification = async () => {
+    const title = notificationForm.title.trim();
+    const body = notificationForm.body.trim();
+
+    if (!selectedStaff?._id) {
+      Notiflix.Notify.failure("Please select a staff member");
+      return;
+    }
+
+    if (!title || !body) {
+      Notiflix.Notify.failure("Please enter notification title and message");
+      return;
+    }
+
+    setIsSendingNotification(true);
+
+    await dispatch(
+      SendStaffWarningPushApi(
+        {
+          title,
+          body,
+          roleTarget: "staff",
+          userId: selectedStaff._id,
+          staffId: selectedStaff._id,
+          targetUserId: selectedStaff._id,
+          memberID: selectedStaff.memberID,
+          screen: "staff_message",
+        },
+        (resp) => {
+          const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+          if (isSuccess) {
+            Notiflix.Notify.success(resp?.message || "Notification sent");
+            setIsSendingNotification(false);
+            closeNotifyModal(true);
+          } else {
+            Notiflix.Notify.failure(
+              resp?.message || "Failed to send notification"
+            );
+            setIsSendingNotification(false);
+          }
+        }
+      )
+    );
+  };
+
   const sortedUsers = useMemo(() => {
     const getValue = {
       serialNumber: (_, index) => (currentPage - 1) * leadsPerPage + index + 1,
@@ -130,7 +217,7 @@ const ManageInvoice = () => {
       staffEarned: (user) => user.staffEarned ?? 0,
       role: (user) => user.role || "",
       isApproved: (user) => user.isApproved || "",
-      status: (user) => (user.isLogin ? "Online" : "Offline"),
+      status: (user) => (user.isOnline ? "Online" : "Offline"),
       createdAt: (user) => user.createdAt || "",
     };
 
@@ -217,7 +304,7 @@ const ManageInvoice = () => {
                         {!["0", "1", "2"].includes(user.isApproved) && "-"}
                       </td>
                       <td>
-                        {user.isLogin ? (
+                        {user.isOnline ? (
                           <span className="badge bg-success">Online</span>
                         ) : (
                           <span className="badge bg-secondary">Offline</span>
@@ -241,6 +328,12 @@ const ManageInvoice = () => {
                             onClick={() => router.push(`/staff-management/${user._id}?mode=edit`)}
                           >
                             Edit
+                          </button>
+                          <button
+                            className="btn btn-sm btn-info"
+                            onClick={() => openNotifyModal(user)}
+                          >
+                            Notify
                           </button>
                           <button
                             className="btn btn-sm btn-danger"
@@ -271,6 +364,57 @@ const ManageInvoice = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal show={showNotifyModal} onHide={closeNotifyModal} centered>
+        <Modal.Header closeButton={!isSendingNotification}>
+          <Modal.Title>Send Staff Notification</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p className="text-muted mb-3">
+            Sending to: <b>{selectedStaff?.name || selectedStaff?.phone || "-"}</b>
+          </p>
+
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Title</Form.Label>
+              <Form.Control
+                name="title"
+                value={notificationForm.title}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Notification title"
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Message</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                name="body"
+                value={notificationForm.body}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Type message for this staff"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={closeNotifyModal}
+            disabled={isSendingNotification}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSendNotification} disabled={isSendingNotification}>
+            {isSendingNotification ? "Sending..." : "Send Notification"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

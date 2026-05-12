@@ -8,6 +8,8 @@ import {
   Form,
   Card,
   Table,
+  Modal,
+  Button,
 } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import TablePagination from "@/components/TablePagination";
@@ -15,7 +17,11 @@ import SortableHeader from "@/components/SortableHeader";
 import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
-import { DeleteUserApi, GetUserListApi } from "@/helper/Redux/ReduxThunk/Homepage";
+import {
+  DeleteUserApi,
+  GetUserListApi,
+  SendUserPushApi,
+} from "@/helper/Redux/ReduxThunk/Homepage";
 
 const ManageInvoice = () => {
   const router = useRouter();
@@ -27,6 +33,13 @@ const ManageInvoice = () => {
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [deletingUserId, setDeletingUserId] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [notificationForm, setNotificationForm] = useState({
+    title: "",
+    body: "",
+  });
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -117,6 +130,80 @@ const ManageInvoice = () => {
     },
     [currentPage, deletingUserId, dispatch, getUserDetails, userList.length]
   );
+
+  const openNotifyModal = (user) => {
+    setSelectedUser(user);
+    setNotificationForm({
+      title: "Someone is waiting for you",
+      body: "Someone is waiting for you. Open Pair Ever now and connect.",
+    });
+    setShowNotifyModal(true);
+  };
+
+  const closeNotifyModal = (forceClose = false) => {
+    if (isSendingNotification && !forceClose) return;
+
+    setShowNotifyModal(false);
+    setSelectedUser(null);
+    setNotificationForm({
+      title: "",
+      body: "",
+    });
+  };
+
+  const handleNotificationChange = (e) => {
+    const { name, value } = e.target;
+    setNotificationForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSendNotification = async () => {
+    const title = notificationForm.title.trim();
+    const body = notificationForm.body.trim();
+
+    if (!selectedUser?._id) {
+      Notiflix.Notify.failure("Please select a user");
+      return;
+    }
+
+    if (!title || !body) {
+      Notiflix.Notify.failure("Please enter notification title and message");
+      return;
+    }
+
+    setIsSendingNotification(true);
+
+    await dispatch(
+      SendUserPushApi(
+        {
+          title,
+          body,
+          roleTarget: "user",
+          userId: selectedUser._id,
+          targetUserId: selectedUser._id,
+          memberID: selectedUser.memberID,
+          coinBalance: selectedUser.coinBalance ?? 0,
+          screen: "user_home",
+        },
+        (resp) => {
+          const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+          if (isSuccess) {
+            Notiflix.Notify.success(resp?.message || "Notification sent");
+            setIsSendingNotification(false);
+            closeNotifyModal(true);
+          } else {
+            Notiflix.Notify.failure(
+              resp?.message || "Failed to send notification"
+            );
+            setIsSendingNotification(false);
+          }
+        }
+      )
+    );
+  };
 
   const sortedUsers = useMemo(() => {
     const getValue = {
@@ -224,6 +311,12 @@ const ManageInvoice = () => {
                             View
                           </button>
                           <button
+                            className="btn btn-sm btn-info"
+                            onClick={() => openNotifyModal(user)}
+                          >
+                            Notify
+                          </button>
+                          <button
                             className="btn btn-sm btn-danger"
                             onClick={() => handleDeleteUser(user._id)}
                             disabled={deletingUserId === user._id}
@@ -252,6 +345,58 @@ const ManageInvoice = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal show={showNotifyModal} onHide={closeNotifyModal} centered>
+        <Modal.Header closeButton={!isSendingNotification}>
+          <Modal.Title>Send User Notification</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p className="text-muted mb-3">
+            Sending to: <b>{selectedUser?.name || selectedUser?.phone || "-"}</b>
+            {" "}({selectedUser?.coinBalance ?? 0} coins)
+          </p>
+
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Title</Form.Label>
+              <Form.Control
+                name="title"
+                value={notificationForm.title}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Notification title"
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Message</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                name="body"
+                value={notificationForm.body}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Type message for this user"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={closeNotifyModal}
+            disabled={isSendingNotification}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSendNotification} disabled={isSendingNotification}>
+            {isSendingNotification ? "Sending..." : "Send Notification"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

@@ -17,6 +17,9 @@ import { sortRows } from "@/helper/tableSort";
 import Notiflix from "notiflix";
 import { GetdepositHistoryApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const getDepositStatus = (status) =>
+  String(status || "").toLowerCase() === "paid" ? "Paid" : "Pending";
+
 const ManageInvoice = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -87,7 +90,7 @@ const ManageInvoice = () => {
       userPhone: (user) => user.userPhone || "",
       memberID: (user) => user.memberID || "",
       totalAmount: (user) => user.totalAmount ?? 0,
-      paymentStatus: (user) => user.paymentStatus || "",
+      paymentStatus: (user) => getDepositStatus(user.paymentStatus),
       createdAt: (user) => user.createdAt || "",
     };
 
@@ -163,7 +166,7 @@ const ManageInvoice = () => {
                       <td>{user.totalAmount ?? 0} {user.currency}</td>
                       {/* <td>{user.role || "-"}</td> */}
                       <td>
-                        {user.paymentStatus == "paid"? (
+                        {getDepositStatus(user.paymentStatus) === "Paid" ? (
                           <span className="badge bg-success">Paid</span>
                         ) : (
                           <span className="badge bg-secondary">Pending</span>

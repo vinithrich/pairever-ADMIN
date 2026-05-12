@@ -14,6 +14,9 @@ import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 import { getDepositHistoryApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const getDepositStatus = (status) =>
+  String(status || "").toLowerCase() === "paid" ? "Paid" : "Pending";
+
 const UserDepositDetail = () => {
   const router = useRouter();
   const { userId } = router.query;
@@ -50,12 +53,8 @@ const UserDepositDetail = () => {
     );
   }
 
-  const paymentBadge =
-    deposit.paymentStatus === "paid"
-      ? "success"
-      : deposit.paymentStatus === "failed"
-      ? "danger"
-      : "warning";
+  const paymentStatus = getDepositStatus(deposit.paymentStatus);
+  const paymentBadge = paymentStatus === "Paid" ? "success" : "warning";
 
   return (
     <Container fluid className="p-6">
@@ -88,7 +87,7 @@ const UserDepositDetail = () => {
             </Col>
             <Col md={4} className="text-md-end">
               <Badge bg={paymentBadge} className="fs-6">
-                {deposit.paymentStatus?.toUpperCase()}
+                {paymentStatus}
               </Badge>
             </Col>
           </Row>
@@ -121,7 +120,7 @@ const UserDepositDetail = () => {
               <th>Payment Status</th>
               <td>
                 <Badge bg={paymentBadge}>
-                  {deposit.paymentStatus}
+                  {paymentStatus}
                 </Badge>
               </td>
             </tr>

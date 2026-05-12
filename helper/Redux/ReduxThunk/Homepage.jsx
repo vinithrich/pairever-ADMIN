@@ -416,6 +416,23 @@ export const DeleteUserApi =
       }
     };
 
+export const UpdateUserBalanceApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("updateUserBalance", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
 export const GetStaffListApi =
   (params = {}, callback = () => { }) =>
     async (dispatch) => {
@@ -765,6 +782,23 @@ export const SendAdminPushApi =
     };
 
 export const SendStaffWarningPushApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postAdminRequest("push/send", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const SendUserPushApi =
   (data, callback = () => { }) =>
     async () => {
       try {

@@ -9,10 +9,16 @@ import {
   Badge,
   Button,
   Table,
+  Modal,
+  Form,
 } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
-import { GetSingleUserApi } from "@/helper/Redux/ReduxThunk/Homepage";
+import {
+  GetSingleUserApi,
+  SendUserPushApi,
+  UpdateUserBalanceApi,
+} from "@/helper/Redux/ReduxThunk/Homepage";
 import SortableHeader from "@/components/SortableHeader";
 import { sortRows } from "@/helper/tableSort";
 
@@ -25,6 +31,15 @@ const UserDetail = () => {
 
   const [user, setUser] = useState(null);
   const [callHistory, setCallHistory] = useState([]);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
+  const [balanceAmount, setBalanceAmount] = useState("");
+  const [notificationForm, setNotificationForm] = useState({
+    title: "Someone is waiting for you",
+    body: "Someone is waiting for you. Open Pair Ever now and connect.",
+  });
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -55,6 +70,130 @@ const UserDetail = () => {
       direction:
         prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
+  };
+
+  const openBalanceModal = () => {
+    setBalanceAmount("");
+    setShowBalanceModal(true);
+  };
+
+  const closeBalanceModal = (forceClose = false) => {
+    if (isUpdatingBalance && !forceClose) return;
+
+    setShowBalanceModal(false);
+    setBalanceAmount("");
+  };
+
+  const handleUpdateBalance = async () => {
+    if (!user?._id) return;
+
+    const amount = Number(balanceAmount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Notiflix.Notify.failure("Please enter a valid balance amount");
+      return;
+    }
+
+    const currentBalance = Number(user?.coinBalance) || 0;
+    const nextBalance = currentBalance + amount;
+
+    setIsUpdatingBalance(true);
+
+    await dispatch(
+      UpdateUserBalanceApi(
+        {
+          userId: user._id,
+          amount,
+          coinBalance: nextBalance,
+        },
+        async (resp) => {
+          const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+          if (isSuccess) {
+            Notiflix.Notify.success(resp?.message || "Balance updated");
+            setUser((prev) => ({
+              ...prev,
+              coinBalance: resp?.data?.coinBalance ?? nextBalance,
+            }));
+            await fetchUser();
+            setIsUpdatingBalance(false);
+            closeBalanceModal(true);
+          } else {
+            Notiflix.Notify.failure(resp?.message || "Failed to update balance");
+            setIsUpdatingBalance(false);
+          }
+        }
+      )
+    );
+  };
+
+  const openNotifyModal = () => {
+    setNotificationForm({
+      title: "Someone is waiting for you",
+      body: "Someone is waiting for you. Open Pair Ever now and connect.",
+    });
+    setShowNotifyModal(true);
+  };
+
+  const closeNotifyModal = (forceClose = false) => {
+    if (isSendingNotification && !forceClose) return;
+
+    setShowNotifyModal(false);
+    setNotificationForm({
+      title: "Someone is waiting for you",
+      body: "Someone is waiting for you. Open Pair Ever now and connect.",
+    });
+  };
+
+  const handleNotificationChange = (e) => {
+    const { name, value } = e.target;
+    setNotificationForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSendNotification = async () => {
+    if (!user?._id) return;
+
+    const title = notificationForm.title.trim();
+    const body = notificationForm.body.trim();
+
+    if (!title || !body) {
+      Notiflix.Notify.failure("Please enter notification title and message");
+      return;
+    }
+
+    setIsSendingNotification(true);
+
+    await dispatch(
+      SendUserPushApi(
+        {
+          title,
+          body,
+          roleTarget: "user",
+          userId: user._id,
+          targetUserId: user._id,
+          memberID: user.memberID,
+          coinBalance: user.coinBalance ?? 0,
+          screen: "user_home",
+        },
+        (resp) => {
+          const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+          if (isSuccess) {
+            Notiflix.Notify.success(resp?.message || "Notification sent");
+            setIsSendingNotification(false);
+            closeNotifyModal(true);
+          } else {
+            Notiflix.Notify.failure(
+              resp?.message || "Failed to send notification"
+            );
+            setIsSendingNotification(false);
+          }
+        }
+      )
+    );
   };
 
   const sortedCallHistory = useMemo(() => {
@@ -110,6 +249,11 @@ const UserDetail = () => {
             </Col>
             <Col md={4} className="text-md-end">
               <Badge bg="primary">{user?.role}</Badge>
+              <div className="mt-3">
+                <Button size="sm" variant="info" onClick={openNotifyModal}>
+                  Send Notification
+                </Button>
+              </div>
             </Col>
           </Row>
         </Card.Body>
@@ -130,7 +274,12 @@ const UserDetail = () => {
 
         <Col md={6}>
           <Card className="mb-4 shadow-sm">
-            <Card.Header>Coins & Activity</Card.Header>
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <span>Coins & Activity</span>
+              <Button size="sm" variant="info" onClick={openBalanceModal}>
+                Add Balance
+              </Button>
+            </Card.Header>
             <Card.Body>
               <p><b>Coin Balance:</b> {user?.coinBalance}</p>
               <p><b>Total Purchase Amount:</b> Rs {formatAmount(user?.totalPurchaseAmount)}</p>
@@ -225,6 +374,102 @@ const UserDetail = () => {
           )}
         </Card.Body>
       </Card>
+
+      <Modal show={showBalanceModal} onHide={closeBalanceModal} centered>
+        <Modal.Header closeButton={!isUpdatingBalance}>
+          <Modal.Title>Add User Balance</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p className="text-muted mb-3">
+            Current balance: <b>{user?.coinBalance ?? 0}</b> coins
+          </p>
+
+          <Form>
+            <Form.Group>
+              <Form.Label>Coins to Add</Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                step="1"
+                value={balanceAmount}
+                onChange={(e) => setBalanceAmount(e.target.value)}
+                disabled={isUpdatingBalance}
+                placeholder="Enter coin amount"
+              />
+              <Form.Text>
+                New balance:{" "}
+                {(Number(user?.coinBalance) || 0) + (Number(balanceAmount) || 0)} coins
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={closeBalanceModal}
+            disabled={isUpdatingBalance}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateBalance} disabled={isUpdatingBalance}>
+            {isUpdatingBalance ? "Updating..." : "Add Balance"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showNotifyModal} onHide={closeNotifyModal} centered>
+        <Modal.Header closeButton={!isSendingNotification}>
+          <Modal.Title>Send User Notification</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p className="text-muted mb-3">
+            Sending to: <b>{user?.name || user?.phone || "-"}</b>
+            {" "}({user?.coinBalance ?? 0} coins)
+          </p>
+
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Title</Form.Label>
+              <Form.Control
+                name="title"
+                value={notificationForm.title}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Notification title"
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Message</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                name="body"
+                value={notificationForm.body}
+                onChange={handleNotificationChange}
+                disabled={isSendingNotification}
+                placeholder="Type message for this user"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={closeNotifyModal}
+            disabled={isSendingNotification}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSendNotification} disabled={isSendingNotification}>
+            {isSendingNotification ? "Sending..." : "Send Notification"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
