@@ -7,7 +7,7 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
 
   const getValueByPath = (source, path) => {
     if (!source || !path) {
-      return 0;
+      return undefined;
     }
 
     return path.split(".").reduce((acc, key) => {
@@ -15,14 +15,33 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
         return acc[key];
       }
 
-      return 0;
+      return undefined;
     }, source);
   };
 
-  const getSafeNumber = (value) => (typeof value === "number" ? value : 0);
+  const getValueByPaths = (source, paths) => {
+    const pathList = Array.isArray(paths) ? paths : [paths];
 
-  const currentCount = getSafeNumber(getValueByPath(dashboardcountdata, info.keyPath));
-  const previousCount = getSafeNumber(getValueByPath(previousCounts, info.keyPath));
+    for (const path of pathList) {
+      const value = getValueByPath(source, path);
+
+      if (value !== undefined && value !== null && value !== "") {
+        return value;
+      }
+    }
+
+    return 0;
+  };
+
+  const getSafeNumber = (value) => {
+    const numberValue = Number(value);
+
+    return Number.isFinite(numberValue) ? numberValue : 0;
+  };
+
+  const valuePaths = info.keyPaths || info.keyPath;
+  const currentCount = getSafeNumber(getValueByPaths(dashboardcountdata, valuePaths));
+  const previousCount = getSafeNumber(getValueByPaths(previousCounts, valuePaths));
   const difference = currentCount - previousCount;
   const formattedCurrentCount = `${info.prefix || ""}${currentCount.toLocaleString()}`;
   const formattedDifference = `${difference > 0 ? "+" : ""}${info.prefix || ""}${Math.abs(

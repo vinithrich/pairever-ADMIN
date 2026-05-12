@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -8,6 +9,8 @@ import {
   Form,
   Card,
   Table,
+  ButtonGroup,
+  Button,
 } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import TablePagination from "@/components/TablePagination";
@@ -20,6 +23,33 @@ import { GetdepositHistoryApi } from "@/helper/Redux/ReduxThunk/Homepage";
 const getDepositStatus = (status) =>
   String(status || "").toLowerCase() === "paid" ? "Paid" : "Pending";
 
+const formatDateTime = (date) => {
+  if (!date) return "-";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) return "-";
+
+  return parsedDate.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const getUserDetailId = (user) =>
+  user?.userId?._id ||
+  user?.userId ||
+  user?.user?._id ||
+  user?.customerId?._id ||
+  user?.customerId ||
+  user?.createdBy?._id ||
+  user?.createdBy ||
+  "";
+
 const ManageInvoice = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -27,6 +57,7 @@ const ManageInvoice = () => {
   const [userList, setUserList] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [sortConfig, setSortConfig] = useState({
@@ -44,6 +75,10 @@ const ManageInvoice = () => {
       limit: leadsPerPage,
     };
 
+    if (statusFilter) {
+      queryParams.paymentStatus = statusFilter;
+    }
+
     await dispatch(
       GetdepositHistoryApi(queryParams, (resp) => {
         if (resp?.status) {
@@ -56,7 +91,7 @@ const ManageInvoice = () => {
         }
       })
     );
-  }, [currentPage, dispatch, leadsPerPage, searchQuery]);
+  }, [currentPage, dispatch, leadsPerPage, searchQuery, statusFilter]);
 
   useEffect(() => {
     getUserDetails();
@@ -64,6 +99,11 @@ const ManageInvoice = () => {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilter = (status) => {
+    setStatusFilter(status);
     setCurrentPage(1);
   };
 
@@ -117,15 +157,41 @@ const ManageInvoice = () => {
 
 
       <div className="d-flex justify-content-between w-100">
-        <Form className="d-flex gap-3">
+        <Form className="d-flex flex-wrap align-items-end gap-3">
           <div>
             <Form.Label className="text-white fw-bold">Search</Form.Label>
             <Form.Control
               type="search"
-              placeholder="Search Name / Phone / Gender / Language"
+              placeholder="Search Name / Phone /"
               value={searchQuery}
               onChange={handleSearch}
             />
+          </div>
+          <div>
+            <Form.Label className="text-white fw-bold">Filter</Form.Label>
+            <ButtonGroup className="d-flex">
+              <Button
+                type="button"
+                variant={statusFilter === "" ? "primary" : "outline-primary"}
+                onClick={() => handleStatusFilter("")}
+              >
+                All
+              </Button>
+              <Button
+                type="button"
+                variant={statusFilter === "paid" ? "primary" : "outline-primary"}
+                onClick={() => handleStatusFilter("paid")}
+              >
+                Paid
+              </Button>
+              <Button
+                type="button"
+                variant={statusFilter === "pending" ? "primary" : "outline-primary"}
+                onClick={() => handleStatusFilter("pending")}
+              >
+                Pending
+              </Button>
+            </ButtonGroup>
           </div>
         </Form>
       </div>
@@ -158,7 +224,18 @@ const ManageInvoice = () => {
                       <td>
                         {(currentPage - 1) * leadsPerPage + i + 1}
                       </td>
-                      <td>{user.userName || "-"}</td>
+                      <td>
+                        {user.userName && getUserDetailId(user) ? (
+                          <Link
+                            href={`/user-management/${getUserDetailId(user)}`}
+                            className="text-decoration-none fw-semibold"
+                          >
+                            {user.userName}
+                          </Link>
+                        ) : (
+                          user.userName || "-"
+                        )}
+                      </td>
                       <td>{user.userPhone || "-"}</td>
                       <td>{user.memberID || "-"}</td>
                       {/* <td>{user.DOB || "-"}</td> */}
@@ -173,9 +250,7 @@ const ManageInvoice = () => {
                         )}
                       </td>
                       <td>
-                        {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString()
-                          : "-"}
+                        {formatDateTime(user.createdAt)}
                       </td>
                       <td>
                         <button
