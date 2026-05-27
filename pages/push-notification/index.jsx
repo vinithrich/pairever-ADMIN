@@ -6,6 +6,45 @@ import Notiflix from "notiflix";
 import { PageHeading } from "@/widgets";
 import { SendAdminPushApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const audienceTargets = [
+  {
+    value: "all",
+    label: "All selected role",
+    description: "Send to everyone in the selected role with a push token.",
+  },
+  {
+    value: "free_coin_not_used",
+    label: "Did not use free coin",
+    description: "Users who still have not used their free coin offer.",
+  },
+  {
+    value: "free_coin_used_no_deposit",
+    label: "Used free coin, no deposit",
+    description: "Users who used free coins but have not made a deposit yet.",
+  },
+  {
+    value: "highest_deposit",
+    label: "Highest deposit users",
+    description: "Users with the highest successful deposit value.",
+  },
+  {
+    value: "deposit_attempted",
+    label: "Tried to deposit",
+    description: "Users who started a deposit attempt.",
+  },
+  {
+    value: "deposit_in_process",
+    label: "Deposit in process",
+    description: "Users with a pending or processing deposit.",
+  },
+];
+
+const userAudienceValues = new Set(
+  audienceTargets
+    .map((target) => target.value)
+    .filter((value) => value !== "all")
+);
+
 const PushNotificationPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -13,6 +52,7 @@ const PushNotificationPage = () => {
   const [formData, setFormData] = useState({
     title: "",
     body: "",
+    audienceTarget: "all",
     roleTarget: "all",
     screen: "",
   });
@@ -24,6 +64,9 @@ const PushNotificationPage = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "roleTarget" && value !== "user"
+        ? { audienceTarget: "all" }
+        : {}),
     }));
   };
 
@@ -47,6 +90,8 @@ const PushNotificationPage = () => {
         {
           title,
           body,
+          audienceTarget: formData.audienceTarget,
+          userFilter: formData.audienceTarget,
           roleTarget: formData.roleTarget,
           ...(screen ? { screen } : {}),
         },
@@ -88,7 +133,7 @@ const PushNotificationPage = () => {
               <div className="mb-4">
                 <h4 className="mb-1">Send Push Notification</h4>
                 <p className="text-muted mb-0">
-                  Broadcast a push notification to all devices or a selected role.
+                  Broadcast a push notification to a selected role or user segment.
                 </p>
               </div>
 
@@ -139,6 +184,35 @@ const PushNotificationPage = () => {
                   </Form.Select>
                 </Form.Group>
 
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-bold">Audience Target</Form.Label>
+                  <Form.Select
+                    name="audienceTarget"
+                    value={formData.audienceTarget}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                  >
+                    {audienceTargets
+                      .filter(
+                        (target) =>
+                          target.value === "all" ||
+                          formData.roleTarget === "user"
+                      )
+                      .map((target) => (
+                        <option key={target.value} value={target.value}>
+                          {target.label}
+                        </option>
+                      ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">
+                    {formData.roleTarget === "user"
+                      ? audienceTargets.find(
+                          (target) => target.value === formData.audienceTarget
+                        )?.description
+                      : "User filters are available only when Role Target is User."}
+                  </Form.Text>
+                </Form.Group>
+
                 <Form.Group className="mb-4">
                   <Form.Label className="fw-bold">Screen</Form.Label>
                   <Form.Control
@@ -166,6 +240,7 @@ const PushNotificationPage = () => {
                       setFormData({
                         title: "",
                         body: "",
+                        audienceTarget: "all",
                         roleTarget: "all",
                         screen: "",
                       });

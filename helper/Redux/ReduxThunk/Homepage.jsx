@@ -550,6 +550,18 @@ export const GetdepositHistoryApi =
       } catch (e) { }
     };
 
+export const GetReferralHistoriesApi =
+  (params = {}, callback = () => { }) =>
+    async (dispatch) => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `getReferralHistories?${queryString}`
+        );
+        callback(response);
+      } catch (e) { }
+    };
+
 
 export const getDepositHistoryApi =
   (data, callback = () => { }) =>
@@ -692,6 +704,63 @@ export const getSinglePaymentStructureApi =
           status: false,
           message: e?.message || "Request failed",
         });
+        return null;
+      }
+    };
+
+export const GetPaymentGatewayListApi =
+  (callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest("getPaymentGateways");
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
+export const UpdateActivePaymentGatewayApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest(
+          "setActivePaymentGateway",
+          data
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
+export const SavePaymentGatewayApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest(
+          "savePaymentGateway",
+          data
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
         return null;
       }
     };
@@ -916,6 +985,63 @@ export const GetStaffReportByIdApi =
     async () => {
       try {
         const response = await apiHelper.getRequest(`staff-report/${reportId}`);
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetUserReportListApi =
+  (params = {}, callback = () => { }) =>
+    async () => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `user-report/list?${queryString}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetUserReportByIdApi =
+  (reportId, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest(`user-report/${reportId}`);
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetOverallCallHistoryApi =
+  (params = {}, callback = () => { }) =>
+    async () => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `overall-call-history?${queryString}`
+        );
         callback(response);
         return response;
       } catch (e) {

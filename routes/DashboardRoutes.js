@@ -65,6 +65,12 @@ export const DashboardMenu = [
   },
   {
     id: uuid(),
+    title: "Referral Histories",
+    icon: "share-2",
+    link: "/referral-histories",
+  },
+  {
+    id: uuid(),
     title: "Withdraw Management",
     icon: "briefcase",
     link: "/withdraw-management",
@@ -75,6 +81,12 @@ export const DashboardMenu = [
     title: "Payments Structure",
     icon: "briefcase",
     link: "/payments-structure",
+  },
+  {
+    id: uuid(),
+    title: "Razorpay Gateway",
+    icon: "credit-card",
+    link: "/payment-gateway-management",
   },
   {
     id: uuid(),
@@ -105,6 +117,24 @@ export const DashboardMenu = [
     title: "Staff Reports",
     icon: "flag",
     link: "/staff-reports",
+  },
+  {
+    id: uuid(),
+    title: "User Reports",
+    icon: "alert-circle",
+    link: "/user-reports",
+  },
+  {
+    id: uuid(),
+    title: "Overall Call History",
+    icon: "phone-call",
+    link: "/overall-call-history",
+  },
+  {
+    id: uuid(),
+    title: "Staff Speaking Reports",
+    icon: "bar-chart-2",
+    link: "/staff-speaking-reports",
   },
 
   // {
