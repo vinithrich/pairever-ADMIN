@@ -386,6 +386,7 @@ export const DeleteUserApi =
         const response = await fetch(`${apiHelper.authUrl}/deleteUser`, {
           method: "POST",
           headers: {
+            ...apiHelper.getAuthHeaders(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
@@ -508,6 +509,7 @@ export const DeleteStaffApi =
         const response = await fetch(`${apiHelper.authUrl}/deleteStaff`, {
           method: "POST",
           headers: {
+            ...apiHelper.getAuthHeaders(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
@@ -1041,6 +1043,46 @@ export const GetOverallCallHistoryApi =
         const queryString = new URLSearchParams(params).toString();
         const response = await apiHelper.getRequest(
           `overall-call-history?${queryString}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetAdminChatConversationsApi =
+  (params = {}, callback = () => { }) =>
+    async () => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `chat/conversations?${queryString}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetAdminChatMessagesApi =
+  (conversationId, params = {}, callback = () => { }) =>
+    async () => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `chat/conversations/${conversationId}/messages?${queryString}`
         );
         callback(response);
         return response;

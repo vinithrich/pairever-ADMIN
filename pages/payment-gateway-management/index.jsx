@@ -22,24 +22,44 @@ import {
 
 const emptyGatewayForm = {
   gatewayId: "",
+  provider: "Razorpay",
   accountName: "",
-  accountId: "",
+  razorpayAccountId: "",
   keyId: "",
   keySecret: "",
   webhookSecret: "",
+  cashfreeAppId: "",
+  cashfreeSecretKey: "",
+  cashfreeApiVersion: "2023-08-01",
   mode: "Live",
   description: "",
   isActive: false,
 };
 
+const PROVIDERS = ["Razorpay", "Cashfree"];
+
+const isCashfreeProvider = (provider) =>
+  String(provider || "").toLowerCase() === "cashfree";
+
+const getProviderCredentialLabel = (gateway) =>
+  isCashfreeProvider(gateway?.provider) ? "App ID" : "Key ID";
+
+const getProviderCredentialValue = (gateway) =>
+  isCashfreeProvider(gateway?.provider)
+    ? gateway?.cashfreeAppId || "-"
+    : gateway?.keyId || "-";
+
 const normalizeGateway = (gateway, index) => {
+  const provider = gateway?.provider || gateway?.gateway || "Razorpay";
   const id =
     gateway?._id ||
     gateway?.id ||
     gateway?.gatewayId ||
     gateway?.razorpayAccountId ||
+    gateway?.cashfreeAppId ||
+    gateway?.appId ||
     gateway?.accountId ||
-    `razorpay-${index + 1}`;
+    `${provider.toLowerCase()}-${index + 1}`;
 
   return {
     ...gateway,
@@ -48,13 +68,19 @@ const normalizeGateway = (gateway, index) => {
       gateway?.accountName ||
       gateway?.name ||
       gateway?.title ||
-      `Razorpay Account ${index + 1}`,
-    provider: gateway?.provider || gateway?.gateway || "Razorpay",
+      `${provider} Account ${index + 1}`,
+    provider,
     keyId: gateway?.keyId || gateway?.razorpayKeyId || gateway?.key_id || "-",
     razorpayAccountId:
       gateway?.razorpayAccountId || gateway?.accountId || gateway?.account_id || "",
     webhookSecret:
       gateway?.webhookSecret || gateway?.razorpayWebhookSecret || "",
+    cashfreeAppId:
+      gateway?.cashfreeAppId || gateway?.appId || gateway?.clientId || "",
+    cashfreeSecretKey:
+      gateway?.cashfreeSecretKey || gateway?.secretKey || gateway?.clientSecret || "",
+    cashfreeApiVersion:
+      gateway?.cashfreeApiVersion || gateway?.apiVersion || "2023-08-01",
     description: gateway?.description || gateway?.notes || "",
     mode: gateway?.mode || gateway?.environment || "Live",
     active:
@@ -152,11 +178,15 @@ const PaymentGatewayManagement = () => {
 
     setGatewayForm({
       gatewayId: gateway.id || "",
+      provider: gateway.provider || "Razorpay",
       accountName: gateway.accountName || "",
-      accountId: gateway.razorpayAccountId || "",
+      razorpayAccountId: gateway.razorpayAccountId || "",
       keyId: gateway.keyId === "-" ? "" : gateway.keyId || "",
       keySecret: "",
       webhookSecret: gateway.webhookSecret || "",
+      cashfreeAppId: gateway.cashfreeAppId || "",
+      cashfreeSecretKey: "",
+      cashfreeApiVersion: gateway.cashfreeApiVersion || "2023-08-01",
       mode: gateway.mode || "Live",
       description: gateway.description || "",
       isActive: Boolean(gateway.active),
@@ -185,8 +215,16 @@ const PaymentGatewayManagement = () => {
       return;
     }
 
-    if (!gatewayForm.keyId.trim()) {
+    if (!isCashfreeProvider(gatewayForm.provider) && !gatewayForm.keyId.trim()) {
       Notiflix.Notify.failure("Razorpay Key ID is required");
+      return;
+    }
+
+    if (
+      isCashfreeProvider(gatewayForm.provider) &&
+      !gatewayForm.cashfreeAppId.trim()
+    ) {
+      Notiflix.Notify.failure("Cashfree App ID is required");
       return;
     }
 
@@ -198,23 +236,29 @@ const PaymentGatewayManagement = () => {
           gatewayId: gatewayForm.gatewayId,
           paymentGatewayId: gatewayForm.gatewayId,
           accountName: gatewayForm.accountName,
-          razorpayAccountId: gatewayForm.accountId,
+          razorpayAccountId: gatewayForm.razorpayAccountId,
           keyId: gatewayForm.keyId,
           keySecret: gatewayForm.keySecret,
           webhookSecret: gatewayForm.webhookSecret,
+          cashfreeAppId: gatewayForm.cashfreeAppId,
+          cashfreeSecretKey: gatewayForm.cashfreeSecretKey,
+          cashfreeApiVersion: gatewayForm.cashfreeApiVersion,
+          appId: gatewayForm.cashfreeAppId,
+          secretKey: gatewayForm.cashfreeSecretKey,
+          apiVersion: gatewayForm.cashfreeApiVersion,
           mode: gatewayForm.mode,
           description: gatewayForm.description,
-          provider: "Razorpay",
-          gateway: "Razorpay",
+          provider: gatewayForm.provider,
+          gateway: gatewayForm.provider,
           isActive: Boolean(gatewayForm.isActive),
         },
         (resp) => {
           if (resp?.status || resp?.success) {
-            Notiflix.Notify.success("Razorpay account details saved");
+            Notiflix.Notify.success(`${gatewayForm.provider} account details saved`);
             loadPaymentGateways();
           } else {
             Notiflix.Notify.failure(
-              resp?.message || "Failed to save Razorpay account details"
+              resp?.message || "Failed to save payment gateway details"
             );
           }
 
@@ -237,6 +281,8 @@ const PaymentGatewayManagement = () => {
           gatewayId: gateway.id,
           paymentGatewayId: gateway.id,
           razorpayAccountId: gateway.razorpayAccountId || "",
+          cashfreeAppId: gateway.cashfreeAppId || "",
+          appId: gateway.cashfreeAppId || "",
           provider: gateway.provider,
           isActive: true,
         },
@@ -265,7 +311,7 @@ const PaymentGatewayManagement = () => {
           className="nav-icon fe fe-arrow-left-circle me-2 text-white"
           onClick={handleGoBack}
         ></i>
-        <PageHeading heading="Razorpay Gateway Management" />
+        <PageHeading heading="Payment Gateway Management" />
       </div>
 
       <Row className="mt-4">
@@ -287,8 +333,12 @@ const PaymentGatewayManagement = () => {
                   <div className="fw-bold fs-4">{activeGateway.accountName}</div>
                   <div className="text-muted mt-1">{activeGateway.provider}</div>
                   <div className="border-top mt-4 pt-3">
-                    <div className="text-muted small">Key ID</div>
-                    <div className="fw-semibold">{activeGateway.keyId}</div>
+                    <div className="text-muted small">
+                      {getProviderCredentialLabel(activeGateway)}
+                    </div>
+                    <div className="fw-semibold">
+                      {getProviderCredentialValue(activeGateway)}
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="text-muted small">Last Updated</div>
@@ -309,7 +359,7 @@ const PaymentGatewayManagement = () => {
             <Card.Body>
               <Form className="d-flex flex-wrap align-items-end gap-3">
                 <div className="flex-grow-1">
-                  <Form.Label className="fw-bold">Switch Razorpay Account</Form.Label>
+                  <Form.Label className="fw-bold">Switch Active Gateway Account</Form.Label>
                   <Form.Select
                     value={selectedGatewayId}
                     onChange={(event) => setSelectedGatewayId(event.target.value)}
@@ -320,7 +370,7 @@ const PaymentGatewayManagement = () => {
                     ) : (
                       gateways.map((gateway) => (
                         <option key={gateway.id} value={gateway.id}>
-                          {gateway.accountName}
+                          {gateway.provider} - {gateway.accountName}
                           {gateway.active ? " - Active" : ""}
                         </option>
                       ))
@@ -368,7 +418,7 @@ const PaymentGatewayManagement = () => {
           <Card>
             <Card.Body>
               <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
-                <h4 className="mb-0">Razorpay Account Details</h4>
+                <h4 className="mb-0">Gateway Account Details</h4>
                 <Button
                   type="button"
                   variant="outline-secondary"
@@ -382,22 +432,27 @@ const PaymentGatewayManagement = () => {
               <Form onSubmit={handleSaveGateway}>
                 <Row>
                   <Col md={4} className="mb-3">
+                    <Form.Label className="fw-bold">Provider</Form.Label>
+                    <Form.Select
+                      name="provider"
+                      value={gatewayForm.provider}
+                      onChange={handleFormChange}
+                    >
+                      {PROVIDERS.map((provider) => (
+                        <option key={provider} value={provider}>
+                          {provider}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Col>
+
+                  <Col md={4} className="mb-3">
                     <Form.Label className="fw-bold">Account Name</Form.Label>
                     <Form.Control
                       name="accountName"
                       value={gatewayForm.accountName}
                       onChange={handleFormChange}
-                      placeholder="Razorpay Account 1"
-                    />
-                  </Col>
-
-                  <Col md={4} className="mb-3">
-                    <Form.Label className="fw-bold">Razorpay Account ID</Form.Label>
-                    <Form.Control
-                      name="accountId"
-                      value={gatewayForm.accountId}
-                      onChange={handleFormChange}
-                      placeholder="acc_xxxxxxxxx"
+                      placeholder={`${gatewayForm.provider} Account 1`}
                     />
                   </Col>
 
@@ -413,37 +468,84 @@ const PaymentGatewayManagement = () => {
                     </Form.Select>
                   </Col>
 
-                  <Col md={4} className="mb-3">
-                    <Form.Label className="fw-bold">Key ID</Form.Label>
-                    <Form.Control
-                      name="keyId"
-                      value={gatewayForm.keyId}
-                      onChange={handleFormChange}
-                      placeholder="rzp_live_xxxxxxxxx"
-                    />
-                  </Col>
+                  {isCashfreeProvider(gatewayForm.provider) ? (
+                    <>
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">Cashfree App ID</Form.Label>
+                        <Form.Control
+                          name="cashfreeAppId"
+                          value={gatewayForm.cashfreeAppId}
+                          onChange={handleFormChange}
+                          placeholder="CF app id"
+                        />
+                      </Col>
 
-                  <Col md={4} className="mb-3">
-                    <Form.Label className="fw-bold">Key Secret</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="keySecret"
-                      value={gatewayForm.keySecret}
-                      onChange={handleFormChange}
-                      placeholder="Enter key secret"
-                    />
-                  </Col>
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">Cashfree Secret Key</Form.Label>
+                        <Form.Control
+                          type="password"
+                          name="cashfreeSecretKey"
+                          value={gatewayForm.cashfreeSecretKey}
+                          onChange={handleFormChange}
+                          placeholder="Enter secret key"
+                        />
+                      </Col>
 
-                  <Col md={4} className="mb-3">
-                    <Form.Label className="fw-bold">Webhook Secret</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="webhookSecret"
-                      value={gatewayForm.webhookSecret}
-                      onChange={handleFormChange}
-                      placeholder="Enter webhook secret"
-                    />
-                  </Col>
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">API Version</Form.Label>
+                        <Form.Control
+                          name="cashfreeApiVersion"
+                          value={gatewayForm.cashfreeApiVersion}
+                          onChange={handleFormChange}
+                          placeholder="2023-08-01"
+                        />
+                      </Col>
+                    </>
+                  ) : (
+                    <>
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">Razorpay Account ID</Form.Label>
+                        <Form.Control
+                          name="razorpayAccountId"
+                          value={gatewayForm.razorpayAccountId}
+                          onChange={handleFormChange}
+                          placeholder="acc_xxxxxxxxx"
+                        />
+                      </Col>
+
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">Key ID</Form.Label>
+                        <Form.Control
+                          name="keyId"
+                          value={gatewayForm.keyId}
+                          onChange={handleFormChange}
+                          placeholder="rzp_live_xxxxxxxxx"
+                        />
+                      </Col>
+
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">Key Secret</Form.Label>
+                        <Form.Control
+                          type="password"
+                          name="keySecret"
+                          value={gatewayForm.keySecret}
+                          onChange={handleFormChange}
+                          placeholder="Enter key secret"
+                        />
+                      </Col>
+
+                      <Col md={4} className="mb-3">
+                        <Form.Label className="fw-bold">Webhook Secret</Form.Label>
+                        <Form.Control
+                          type="password"
+                          name="webhookSecret"
+                          value={gatewayForm.webhookSecret}
+                          onChange={handleFormChange}
+                          placeholder="Enter webhook secret"
+                        />
+                      </Col>
+                    </>
+                  )}
 
                   <Col md={8} className="mb-3">
                     <Form.Label className="fw-bold">Description</Form.Label>
@@ -494,7 +596,7 @@ const PaymentGatewayManagement = () => {
                   <th>S.No</th>
                   <th>Account</th>
                   <th>Provider</th>
-                  <th>Key ID</th>
+                  <th>Credential</th>
                   <th>Mode</th>
                   <th>Status</th>
                   <th>Last Updated</th>
@@ -514,7 +616,14 @@ const PaymentGatewayManagement = () => {
                       <td>{index + 1}</td>
                       <td className="fw-semibold">{gateway.accountName}</td>
                       <td>{gateway.provider}</td>
-                      <td>{gateway.keyId}</td>
+                      <td>
+                        <div className="fw-semibold">
+                          {getProviderCredentialValue(gateway)}
+                        </div>
+                        <div className="text-muted small">
+                          {getProviderCredentialLabel(gateway)}
+                        </div>
+                      </td>
                       <td>{gateway.mode}</td>
                       <td>
                         {gateway.active ? (

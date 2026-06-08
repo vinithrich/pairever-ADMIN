@@ -19,6 +19,7 @@ import { UserloginApi } from "@/helper/Redux/ReduxThunk/Homepage";
 import { useRouter } from "next/router";
 import { useDispatch } from "react-redux";
 import { errorToast, successToast } from "@/components/custom-toast";
+import { getFirstAllowedPath } from "@/helper/accessControl";
 
 // Define validation schema
 const schema = yup.object().shape({
@@ -53,16 +54,16 @@ const SignIn = () => {
 
     await dispatch(
       UserloginApi(param, (resp) => {
-        if (resp.status === true) {
+        if (resp?.status === true) {
           successToast(resp?.message);
           login({
             email: data?.email,
             ...resp,
           });
-          router.push("/dashboard");
+          router.push(getFirstAllowedPath({ raw: resp }));
           setLoading(false);
         } else {
-          errorToast(resp?.message);
+          errorToast(resp?.message || "Login failed");
           setLoading(false);
         }
       })

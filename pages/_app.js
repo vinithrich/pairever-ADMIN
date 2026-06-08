@@ -7,14 +7,19 @@ import { Toaster } from "react-hot-toast";
 import store from "@/helper/Redux/Store";
 import DefaultDashboardLayout from "@/layouts/DefaultDashboardLayout";
 import { AuthProvider, useAuth } from "@/helper/Context/AuthContext";
+import { canAccessPath, getFirstAllowedPath } from "@/helper/accessControl";
 import "../styles/theme.scss";
 import "../styles/Customized Styles/Customized.scss";
 
 const PUBLIC_ROUTES = ["/", "/404", "/privacy-policy"];
 
+const PageFallback = () => (
+  <div style={{ minHeight: "100vh", background: "#fff" }} />
+);
+
 const RouteGuard = ({ children }) => {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     if (isLoading) {
@@ -29,16 +34,42 @@ const RouteGuard = ({ children }) => {
     }
 
     if (isAuthenticated && router.pathname === "/") {
-      router.replace("/dashboard");
+      const nextPath = getFirstAllowedPath(user);
+
+      if (nextPath !== router.pathname) {
+        router.replace(nextPath);
+      }
+
+      return;
     }
-  }, [isAuthenticated, isLoading, router]);
+
+    if (
+      isAuthenticated &&
+      !isPublicRoute &&
+      !canAccessPath(user, router.pathname)
+    ) {
+      const nextPath = getFirstAllowedPath(user);
+
+      if (nextPath !== router.pathname) {
+        router.replace(nextPath);
+      }
+    }
+  }, [isAuthenticated, isLoading, router, user]);
 
   if (isLoading) {
-    return null;
+    return <PageFallback />;
   }
 
   if (!isAuthenticated && !PUBLIC_ROUTES.includes(router.pathname)) {
-    return null;
+    return <PageFallback />;
+  }
+
+  if (
+    isAuthenticated &&
+    !PUBLIC_ROUTES.includes(router.pathname) &&
+    !canAccessPath(user, router.pathname)
+  ) {
+    return <PageFallback />;
   }
 
   return children;

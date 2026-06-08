@@ -5,12 +5,46 @@ const AuthContext = createContext();
 
 const AUTH_STORAGE_KEY = "adminAuth";
 
+const isObject = (value) => value && typeof value === "object";
+
+const isAccountLike = (value) =>
+  isObject(value) &&
+  ("permissions" in value ||
+    "access" in value ||
+    "isSubAdmin" in value ||
+    "isSuperAdmin" in value ||
+    "isVerified" in value ||
+    "status" in value ||
+    "email" in value ||
+    "name" in value ||
+    "id" in value ||
+    "_id" in value ||
+    "roleName" in value ||
+    "role" in value);
+
+const getAuthUser = (authData = {}) => {
+  const candidates = [
+    authData?.user,
+    authData?.data?.user,
+    authData?.data,
+    authData,
+  ];
+
+  return candidates.find(isAccountLike) || null;
+};
+
 const getStoredAuth = () => {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+  let storedAuth = null;
+
+  try {
+    storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+  } catch (error) {
+    return null;
+  }
 
   if (!storedAuth) {
     return null;
@@ -50,7 +84,7 @@ export const AuthProvider = ({ children }) => {
         authData?.data?.accessToken ||
         authData?.data?.jwt ||
         "",
-      user: authData?.user || authData?.data?.user || null,
+      user: getAuthUser(authData),
       raw: authData,
     };
 

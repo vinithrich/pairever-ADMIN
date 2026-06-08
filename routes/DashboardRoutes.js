@@ -40,6 +40,7 @@ export const DashboardMenu = [
     title: "Dashboard",
     icon: "home",
     link: "/dashboard",
+    accessKey: "dashboard",
   },
 
 
@@ -48,6 +49,7 @@ export const DashboardMenu = [
     title: "User Management",
     icon: "briefcase",
     link: "/user-management",
+    accessKey: "userManagement",
   },
 
   {
@@ -55,6 +57,14 @@ export const DashboardMenu = [
     title: "Staff Management",
     icon: "briefcase",
     link: "/staff-management",
+    accessKey: "staffManagement",
+  },
+  {
+    id: uuid(),
+    title: "Sub-Admin Management",
+    icon: "user-check",
+    link: "/sub-admin-management",
+    accessKey: "subAdminManagement",
   },
 
   {
@@ -62,18 +72,21 @@ export const DashboardMenu = [
     title: "Deposit History",
     icon: "briefcase",
     link: "/deposit-history",
+    accessKey: "depositHistory",
   },
   {
     id: uuid(),
     title: "Referral Histories",
     icon: "share-2",
     link: "/referral-histories",
+    accessKey: "referralHistories",
   },
   {
     id: uuid(),
     title: "Withdraw Management",
     icon: "briefcase",
     link: "/withdraw-management",
+    accessKey: "withdrawManagement",
   },
 
   {
@@ -81,60 +94,77 @@ export const DashboardMenu = [
     title: "Payments Structure",
     icon: "briefcase",
     link: "/payments-structure",
+    accessKey: "paymentsStructure",
   },
   {
     id: uuid(),
     title: "Razorpay Gateway",
     icon: "credit-card",
     link: "/payment-gateway-management",
+    accessKey: "paymentGateway",
   },
   {
     id: uuid(),
     title: "Ad Banner",
     icon: "image",
     link: "/ad-banner",
+    accessKey: "adBanner",
   },
   {
     id: uuid(),
     title: "App Update",
     icon: "upload",
     link: "/app-update",
+    accessKey: "appUpdate",
   },
   {
     id: uuid(),
     title: "Push Notification",
     icon: "send",
     link: "/push-notification",
+    accessKey: "pushNotification",
   },
   {
     id: uuid(),
     title: "Support Tickets",
     icon: "help-circle",
     link: "/support",
+    accessKey: "supportTickets",
+  },
+  {
+    id: uuid(),
+    title: "Chat Audit",
+    icon: "message-square",
+    link: "/chat-audit",
+    accessKey: "chatAudit",
   },
   {
     id: uuid(),
     title: "Staff Reports",
     icon: "flag",
     link: "/staff-reports",
+    accessKey: "reports",
   },
   {
     id: uuid(),
     title: "User Reports",
     icon: "alert-circle",
     link: "/user-reports",
+    accessKey: "reports",
   },
   {
     id: uuid(),
     title: "Overall Call History",
     icon: "phone-call",
     link: "/overall-call-history",
+    accessKey: "callHistory",
   },
   {
     id: uuid(),
     title: "Staff Speaking Reports",
     icon: "bar-chart-2",
     link: "/staff-speaking-reports",
+    accessKey: "reports",
   },
 
   // {

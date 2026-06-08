@@ -19,9 +19,34 @@ import 'simplebar-react/dist/simplebar.min.css';
 
 // import routes file
 import { DashboardMenu } from "@/routes/DashboardRoutes";
+import { canAccessKey } from "@/helper/accessControl";
+import { useAuth } from "@/helper/Context/AuthContext";
 
 const NavbarVertical = (props) => {
   const location = useRouter();
+  const { user } = useAuth();
+
+  const filterMenuByAccess = (items = []) =>
+    items
+      .map((item) => {
+        if (item.children) {
+          const children = filterMenuByAccess(item.children);
+
+          if (!children.length) {
+            return null;
+          }
+
+          return {
+            ...item,
+            children,
+          };
+        }
+
+        return canAccessKey(user, item.accessKey) ? item : null;
+      })
+      .filter(Boolean);
+
+  const allowedMenu = filterMenuByAccess(DashboardMenu);
 
   const CustomToggle = ({ children, eventKey, icon }) => {
     const { activeEventKey } = useContext(AccordionContext);
@@ -113,7 +138,7 @@ const NavbarVertical = (props) => {
           as="ul"
           className="navbar-nav flex-column"
         >
-          {DashboardMenu?.map(function (menu, index) {
+          {allowedMenu?.map(function (menu, index) {
             if (menu.grouptitle) {
               return (
                 <Card bsPrefix="nav-item" key={index}>

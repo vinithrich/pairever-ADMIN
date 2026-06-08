@@ -4,14 +4,14 @@ export const authUrl = (() => {
   switch (process.env.NODE_ENV) {
     case "development":
     case "devel":
-      // return "https://api.pair-ever.com/api/v1/admin/auth";
-            return "http://localhost:7000/api/v1/admin/auth";
+      return "https://api.pair-ever.com/api/v1/admin/auth";
+            // return "http://localhost:7000/api/v1/admin/auth";
 
 
   
     default:
-      // return "https://api.pair-ever.com/api/v1/admin/auth";
-            return "http://localhost:7000/api/v1/admin/auth";
+      return "https://api.pair-ever.com/api/v1/admin/auth";
+            // return "http://localhost:7000/api/v1/admin/auth";
 
    
   }
@@ -20,7 +20,7 @@ export const authUrl = (() => {
 export const adminUrl = authUrl.replace(/\/auth$/, "");
 
 export const getRequest = async (endpoint, isCancel = false) => {
-  return makeRequest(`${authUrl}/${endpoint}`, "GET", isCancel);
+  return makeRequest(`${authUrl}/${endpoint}`, "GET", undefined, isCancel);
 };
 
 export const putRequest = async (endpoint, body, isCancel = false) => {
@@ -61,6 +61,32 @@ export const deleteRequest = async (endpoint, body, isCancel = false) => {
   return makeRequest(`${authUrl}/${endpoint}`, "DELETE", body, isCancel);
 };
 
+export const getAuthToken = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  try {
+    const storedToken = localStorage.getItem("kudavasalToken");
+
+    if (storedToken) {
+      return storedToken;
+    }
+
+    const savedAuth = JSON.parse(localStorage.getItem("adminAuth") || "{}");
+
+    return savedAuth?.token || savedAuth?.raw?.token || savedAuth?.raw?.data?.token || "";
+  } catch (error) {
+    return "";
+  }
+};
+
+export const getAuthHeaders = () => {
+  const token = getAuthToken();
+
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 const makeRequest = async (
   endpoint,
   method,
@@ -68,7 +94,9 @@ const makeRequest = async (
   isCancel = false,
   isFormData = false
 ) => {
-  const headers = {};
+  const headers = {
+    ...getAuthHeaders(),
+  };
 
   if (!isFormData) {
     headers["Content-Type"] = "application/json";
@@ -157,7 +185,20 @@ export const handleResponse = async (response) => {
   }
   // Handle any other unexpected responses
   else {
-    throw new Error(`Unexpected response status: ${response.status}`);
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch (error) {
+      data = null;
+    }
+
+    return {
+      ...(data || {}),
+      status: false,
+      httpStatus: response.status,
+      message: data?.message || `Unexpected response status: ${response.status}`,
+    };
   }
 };
 
@@ -186,5 +227,7 @@ export default {
   postRequest,
   postAdminRequest,
   deleteRequest,
+  getAuthHeaders,
+  getAuthToken,
   formatDate,
 };

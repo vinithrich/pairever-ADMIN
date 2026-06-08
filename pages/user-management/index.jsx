@@ -30,8 +30,14 @@ const ManageInvoice = () => {
   const [userList, setUserList] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
+  const [loginFilter, setLoginFilter] = useState("");
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageDataCount, setPageDataCount] = useState(0);
+  const [totalDataCount, setTotalDataCount] = useState(0);
   const [deletingUserId, setDeletingUserId] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
@@ -50,24 +56,61 @@ const ManageInvoice = () => {
 
   const getUserDetails = useCallback(async () => {
     const queryParams = {
-      search: searchQuery,
       page: currentPage,
       limit: leadsPerPage,
     };
 
+    if (searchQuery.trim()) {
+      queryParams.search = searchQuery.trim();
+    }
+
+    if (dateFilter) {
+      queryParams.date = dateFilter;
+    }
+
+    if (fromDateFilter) {
+      queryParams.fromDate = fromDateFilter;
+      queryParams.startDate = fromDateFilter;
+    }
+
+    if (toDateFilter) {
+      queryParams.toDate = toDateFilter;
+      queryParams.endDate = toDateFilter;
+    }
+
+    if (loginFilter) {
+      queryParams.isLogin = loginFilter;
+      queryParams.verified = loginFilter;
+    }
+
     await dispatch(
       GetUserListApi(queryParams, (resp) => {
         if (resp?.status) {
-          setUserList(resp.data || []);
+          const users = resp.data || [];
+
+          setUserList(users);
           setTotalPages(resp.pagination?.totalPages || 1);
+          setPageDataCount(resp.count ?? users.length);
+          setTotalDataCount(resp.total ?? resp.pagination?.total ?? users.length);
         } else {
           setUserList([]);
           setTotalPages(1);
+          setPageDataCount(0);
+          setTotalDataCount(0);
           Notiflix.Notify.failure(resp?.message || "Failed to fetch users");
         }
       })
     );
-  }, [currentPage, dispatch, leadsPerPage, searchQuery]);
+  }, [
+    currentPage,
+    dateFilter,
+    dispatch,
+    fromDateFilter,
+    leadsPerPage,
+    loginFilter,
+    searchQuery,
+    toDateFilter,
+  ]);
 
   useEffect(() => {
     getUserDetails();
@@ -75,6 +118,20 @@ const ManageInvoice = () => {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (setter) => (event) => {
+    setter(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setDateFilter("");
+    setFromDateFilter("");
+    setToDateFilter("");
+    setLoginFilter("");
     setCurrentPage(1);
   };
 
@@ -242,8 +299,9 @@ const ManageInvoice = () => {
 
 
       <div className="d-flex justify-content-between w-100">
-        <Form className="d-flex gap-3">
-          <div>
+        <Form className="w-100">
+          <Row className="g-3 align-items-end">
+            <Col xs={12} md={4} lg={3}>
             <Form.Label className="text-white fw-bold">Search</Form.Label>
             <Form.Control
               type="search"
@@ -251,7 +309,54 @@ const ManageInvoice = () => {
               value={searchQuery}
               onChange={handleSearch}
             />
-          </div>
+            </Col>
+
+            <Col xs={12} sm={6} md={3} lg={2}>
+              <Form.Label className="text-white fw-bold">Single Date</Form.Label>
+              <Form.Control
+                type="date"
+                value={dateFilter}
+                onChange={handleFilterChange(setDateFilter)}
+              />
+            </Col>
+
+            <Col xs={12} sm={6} md={3} lg={2}>
+              <Form.Label className="text-white fw-bold">From Date</Form.Label>
+              <Form.Control
+                type="date"
+                value={fromDateFilter}
+                onChange={handleFilterChange(setFromDateFilter)}
+              />
+            </Col>
+
+            <Col xs={12} sm={6} md={3} lg={2}>
+              <Form.Label className="text-white fw-bold">To Date</Form.Label>
+              <Form.Control
+                type="date"
+                value={toDateFilter}
+                min={fromDateFilter || undefined}
+                onChange={handleFilterChange(setToDateFilter)}
+              />
+            </Col>
+
+            <Col xs={12} sm={6} md={3} lg={2}>
+              <Form.Label className="text-white fw-bold">Status</Form.Label>
+              <Form.Select
+                value={loginFilter}
+                onChange={handleFilterChange(setLoginFilter)}
+              >
+                <option value="">All</option>
+                <option value="true">Online / Verified</option>
+                <option value="false">Offline / Unverified</option>
+              </Form.Select>
+            </Col>
+
+            <Col xs={12} md="auto">
+              <Button type="button" variant="outline-light" onClick={clearFilters}>
+                Clear
+              </Button>
+            </Col>
+          </Row>
         </Form>
       </div>
 
@@ -259,6 +364,15 @@ const ManageInvoice = () => {
       <Row className="mt-6">
         <Col md={12}>
           <Card>
+            <div className="d-flex flex-wrap justify-content-between gap-2 px-3 py-3 border-bottom">
+              <div className="fw-semibold text-white">
+                Data Count: {pageDataCount}
+              </div>
+              <div className="text-white-50">
+                Total Matching Users: {totalDataCount}
+              </div>
+            </div>
+
             <Table responsive className="text-nowrap mb-0">
               <thead className="table-light">
                 <tr>
