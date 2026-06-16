@@ -434,6 +434,42 @@ export const UpdateUserBalanceApi =
       }
     };
 
+export const SendUserBalanceOtpApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("sendUserBalanceOtp", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
+export const VerifyUserBalanceOtpApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("verifyUserBalanceOtp", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          success: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
 export const GetStaffListApi =
   (params = {}, callback = () => { }) =>
     async (dispatch) => {
@@ -824,6 +860,93 @@ export const UpdateAppVersionApi =
     async () => {
       try {
         const response = await apiHelper.postRequest("updateAppVersion", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetMaintenanceStatusApi =
+  (callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest("getMaintenanceStatus");
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const UpdateMaintenanceStatusApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest(
+          "updateMaintenanceStatus",
+          data
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetStaffGiftsApi =
+  (callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest("getStaffGifts");
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const SaveStaffGiftApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest(
+          "saveStaffGift",
+          data,
+          data instanceof FormData
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const DeleteStaffGiftApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("deleteStaffGift", data);
         callback(response);
         return response;
       } catch (e) {

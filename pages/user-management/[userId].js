@@ -16,12 +16,16 @@ import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 import {
   GetSingleUserApi,
+  SendUserBalanceOtpApi,
   SendUserPushApi,
   UpdateUserBalanceApi,
+  VerifyUserBalanceOtpApi,
 } from "@/helper/Redux/ReduxThunk/Homepage";
 import SortableHeader from "@/components/SortableHeader";
 import { sortRows } from "@/helper/tableSort";
 
+const ADMIN_BALANCE_OTP_PHONE = "+919342730160";
+const ADMIN_BALANCE_OTP_DISPLAY_PHONE = "+91 9342730160";
 const formatAmount = (value) => (Number(value) || 0).toFixed(2);
 
 const UserDetail = () => {
@@ -34,6 +38,10 @@ const UserDetail = () => {
   const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [isSendingBalanceOtp, setIsSendingBalanceOtp] = useState(false);
+  const [balanceOtpSent, setBalanceOtpSent] = useState(false);
+  const [balanceOtp, setBalanceOtp] = useState("");
+  const [balanceOtpToken, setBalanceOtpToken] = useState("");
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
   const [notificationForm, setNotificationForm] = useState({
@@ -74,23 +82,99 @@ const UserDetail = () => {
 
   const openBalanceModal = () => {
     setBalanceAmount("");
+    setBalanceOtp("");
+    setBalanceOtpToken("");
+    setBalanceOtpSent(false);
     setShowBalanceModal(true);
   };
 
   const closeBalanceModal = (forceClose = false) => {
-    if (isUpdatingBalance && !forceClose) return;
+    if ((isSendingBalanceOtp || isUpdatingBalance) && !forceClose) return;
 
     setShowBalanceModal(false);
     setBalanceAmount("");
+    setBalanceOtp("");
+    setBalanceOtpToken("");
+    setBalanceOtpSent(false);
+  };
+
+  const getValidatedBalanceAmount = () => {
+    const amount = Number(balanceAmount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Notiflix.Notify.failure("Please enter a valid balance amount");
+      return null;
+    }
+
+    return amount;
+  };
+
+  const hasValidBalanceAmount =
+    Number.isFinite(Number(balanceAmount)) && Number(balanceAmount) > 0;
+
+  const handleBalanceAmountChange = (e) => {
+    setBalanceAmount(e.target.value);
+    setBalanceOtp("");
+    setBalanceOtpToken("");
+    setBalanceOtpSent(false);
+  };
+
+  const handleSendBalanceOtp = async () => {
+    if (!user?._id) return;
+
+    const amount = getValidatedBalanceAmount();
+    if (!amount) return;
+
+    const currentBalance = Number(user?.coinBalance) || 0;
+    const nextBalance = currentBalance + amount;
+
+    setIsSendingBalanceOtp(true);
+
+    await dispatch(
+      SendUserBalanceOtpApi(
+        {
+          userId: user._id,
+          amount,
+          coinBalance: nextBalance,
+          adminPhone: ADMIN_BALANCE_OTP_PHONE,
+          phone: ADMIN_BALANCE_OTP_PHONE,
+          otpTarget: "admin",
+          purpose: "add_user_balance",
+        },
+        (resp) => {
+          const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+          if (isSuccess) {
+            Notiflix.Notify.success(resp?.message || "OTP sent");
+            setBalanceOtpSent(true);
+            setBalanceOtpToken(
+              resp?.data?.otpToken || resp?.data?.token || resp?.otpToken || ""
+            );
+          } else {
+            Notiflix.Notify.failure(resp?.message || "Failed to send OTP");
+          }
+
+          setIsSendingBalanceOtp(false);
+        }
+      )
+    );
   };
 
   const handleUpdateBalance = async () => {
     if (!user?._id) return;
 
-    const amount = Number(balanceAmount);
+    const amount = getValidatedBalanceAmount();
+    if (!amount) return;
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      Notiflix.Notify.failure("Please enter a valid balance amount");
+    if (!balanceOtpSent) {
+      Notiflix.Notify.failure("Please send OTP before adding balance");
+      return;
+    }
+
+    const otp = balanceOtp.trim();
+
+    if (!otp) {
+      Notiflix.Notify.failure("Please enter OTP");
       return;
     }
 
@@ -100,28 +184,69 @@ const UserDetail = () => {
     setIsUpdatingBalance(true);
 
     await dispatch(
-      UpdateUserBalanceApi(
+      VerifyUserBalanceOtpApi(
         {
           userId: user._id,
           amount,
           coinBalance: nextBalance,
+          otp,
+          otpToken: balanceOtpToken,
+          adminPhone: ADMIN_BALANCE_OTP_PHONE,
+          phone: ADMIN_BALANCE_OTP_PHONE,
+          otpTarget: "admin",
+          purpose: "add_user_balance",
         },
-        async (resp) => {
-          const isSuccess = Boolean(resp?.success ?? resp?.status);
+        async (verifyResp) => {
+          const isOtpVerified = Boolean(
+            verifyResp?.success ?? verifyResp?.status
+          );
 
-          if (isSuccess) {
-            Notiflix.Notify.success(resp?.message || "Balance updated");
-            setUser((prev) => ({
-              ...prev,
-              coinBalance: resp?.data?.coinBalance ?? nextBalance,
-            }));
-            await fetchUser();
+          if (!isOtpVerified) {
+            Notiflix.Notify.failure(
+              verifyResp?.message || "OTP verification failed"
+            );
             setIsUpdatingBalance(false);
-            closeBalanceModal(true);
-          } else {
-            Notiflix.Notify.failure(resp?.message || "Failed to update balance");
-            setIsUpdatingBalance(false);
+            return;
           }
+
+          await dispatch(
+            UpdateUserBalanceApi(
+              {
+                userId: user._id,
+                amount,
+                coinBalance: nextBalance,
+                otp,
+                otpToken: balanceOtpToken,
+                adminPhone: ADMIN_BALANCE_OTP_PHONE,
+                phone: ADMIN_BALANCE_OTP_PHONE,
+                otpTarget: "admin",
+                purpose: "add_user_balance",
+                verificationToken:
+                  verifyResp?.data?.verificationToken ||
+                  verifyResp?.verificationToken ||
+                  "",
+              },
+              async (resp) => {
+                const isSuccess = Boolean(resp?.success ?? resp?.status);
+
+                if (isSuccess) {
+                  Notiflix.Notify.success(resp?.message || "Balance updated");
+                  setUser((prev) => ({
+                    ...prev,
+                    coinBalance: resp?.data?.coinBalance ?? nextBalance,
+                  }));
+                  await fetchUser();
+                  setIsUpdatingBalance(false);
+                  closeBalanceModal(true);
+                } else {
+                  Notiflix.Notify.failure(
+                    resp?.message || "Failed to update balance"
+                  );
+                  setIsUpdatingBalance(false);
+                }
+              }
+            )
+          );
         }
       )
     );
@@ -376,7 +501,7 @@ const UserDetail = () => {
       </Card>
 
       <Modal show={showBalanceModal} onHide={closeBalanceModal} centered>
-        <Modal.Header closeButton={!isUpdatingBalance}>
+        <Modal.Header closeButton={!isSendingBalanceOtp && !isUpdatingBalance}>
           <Modal.Title>Add User Balance</Modal.Title>
         </Modal.Header>
 
@@ -393,13 +518,50 @@ const UserDetail = () => {
                 min="1"
                 step="1"
                 value={balanceAmount}
-                onChange={(e) => setBalanceAmount(e.target.value)}
-                disabled={isUpdatingBalance}
+                onChange={handleBalanceAmountChange}
+                disabled={isSendingBalanceOtp || isUpdatingBalance}
                 placeholder="Enter coin amount"
               />
               <Form.Text>
                 New balance:{" "}
                 {(Number(user?.coinBalance) || 0) + (Number(balanceAmount) || 0)} coins
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mt-3">
+              <div className="d-flex justify-content-between align-items-center">
+                <Form.Label className="mb-0">Admin OTP Verification</Form.Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={balanceOtpSent ? "secondary" : "info"}
+                  onClick={handleSendBalanceOtp}
+                  disabled={
+                    isSendingBalanceOtp ||
+                    isUpdatingBalance ||
+                    !hasValidBalanceAmount
+                  }
+                >
+                  {isSendingBalanceOtp
+                    ? "Sending..."
+                    : balanceOtpSent
+                      ? "Resend OTP"
+                      : "Send OTP"}
+                </Button>
+              </div>
+              <Form.Control
+                className="mt-2"
+                type="text"
+                inputMode="numeric"
+                value={balanceOtp}
+                onChange={(e) => setBalanceOtp(e.target.value)}
+                disabled={!balanceOtpSent || isUpdatingBalance}
+                placeholder="Enter OTP"
+              />
+              <Form.Text>
+                Enter coin amount first. OTP will be sent to admin number{" "}
+                {ADMIN_BALANCE_OTP_DISPLAY_PHONE}. Balance will be added only
+                after OTP is verified.
               </Form.Text>
             </Form.Group>
           </Form>
@@ -409,12 +571,15 @@ const UserDetail = () => {
           <Button
             variant="secondary"
             onClick={closeBalanceModal}
-            disabled={isUpdatingBalance}
+            disabled={isSendingBalanceOtp || isUpdatingBalance}
           >
             Cancel
           </Button>
-          <Button onClick={handleUpdateBalance} disabled={isUpdatingBalance}>
-            {isUpdatingBalance ? "Updating..." : "Add Balance"}
+          <Button
+            onClick={handleUpdateBalance}
+            disabled={isSendingBalanceOtp || isUpdatingBalance || !balanceOtpSent}
+          >
+            {isUpdatingBalance ? "Verifying..." : "Verify OTP & Add Balance"}
           </Button>
         </Modal.Footer>
       </Modal>

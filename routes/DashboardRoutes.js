@@ -61,6 +61,13 @@ export const DashboardMenu = [
   },
   {
     id: uuid(),
+    title: "Staff Gifts",
+    icon: "gift",
+    link: "/staff-gifts",
+    accessKey: "staffGifts",
+  },
+  {
+    id: uuid(),
     title: "Sub-Admin Management",
     icon: "user-check",
     link: "/sub-admin-management",
@@ -116,6 +123,13 @@ export const DashboardMenu = [
     icon: "upload",
     link: "/app-update",
     accessKey: "appUpdate",
+  },
+  {
+    id: uuid(),
+    title: "Maintenance Status",
+    icon: "tool",
+    link: "/maintenance-status",
+    accessKey: "maintenanceStatus",
   },
   {
     id: uuid(),

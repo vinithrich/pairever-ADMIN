@@ -7,13 +7,10 @@ export const authUrl = (() => {
       return "https://api.pair-ever.com/api/v1/admin/auth";
             // return "http://localhost:7000/api/v1/admin/auth";
 
-
   
     default:
       return "https://api.pair-ever.com/api/v1/admin/auth";
             // return "http://localhost:7000/api/v1/admin/auth";
-
-   
   }
 })();
 
@@ -231,3 +228,6 @@ export default {
   getAuthToken,
   formatDate,
 };
+
+
+
