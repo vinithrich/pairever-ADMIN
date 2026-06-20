@@ -126,7 +126,7 @@ const NavbarVertical = (props) => {
 
   return (
     <Fragment>
-      <SimpleBar >
+      <SimpleBar className="navbar-vertical-scroll">
         <div className="nav-scroller">
           {/* <Link href="/" className="navbar-brand">
             <Image src="/images/brand/logo/logo.svg" alt="" />

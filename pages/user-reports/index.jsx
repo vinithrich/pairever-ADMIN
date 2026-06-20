@@ -17,6 +17,7 @@ import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
+import useUrlPageState from "@/hooks/useUrlPageState";
 import { GetUserReportListApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
 const REPORT_TYPES = [
@@ -78,7 +79,7 @@ const UserReportsPage = () => {
 
   const [users, setUsers] = useState([]);
   const [counts, setCounts] = useState({});
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [totalPages, setTotalPages] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -100,7 +101,7 @@ const UserReportsPage = () => {
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, setCurrentPage]);
 
   const fetchReports = useCallback(async () => {
     setIsLoading(true);

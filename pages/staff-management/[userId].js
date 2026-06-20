@@ -54,8 +54,11 @@ const StaffDetail = () => {
     email: "",
     phone: "",
     dob: "",
+    city: "",
+    Language: "",
     role: "",
     isBusy: false,
+    isOnline: false,
     IDtype: "",
     IDnumber: "",
     formStatus: "",
@@ -73,8 +76,11 @@ const StaffDetail = () => {
     email: staffData?.email || "",
     phone: staffData?.phone || "",
     dob: staffData?.dob || "",
+    city: staffData?.city || "",
+    Language: staffData?.Language || staffData?.language || "",
     role: staffData?.role || "",
     isBusy: Boolean(staffData?.isBusy),
+    isOnline: Boolean(staffData?.isOnline),
     IDtype: staffData?.IDtype || "",
     IDnumber: staffData?.IDnumber || "",
     formStatus: staffData?.formStatus || "",
@@ -114,6 +120,23 @@ const StaffDetail = () => {
 
   const formatAmount = (value) => {
     return (Number(value) || 0).toFixed(2);
+  };
+
+  const formatWithdrawFee = (withdraw) => {
+    const feeAmount = Number(withdraw?.withdrawalFee ?? 0);
+    const feeValue = withdraw?.withdrawalFeeValue;
+    const feeUnit = withdraw?.withdrawalFeeUnit;
+
+    if (!feeAmount && !feeValue) {
+      return "-";
+    }
+
+    const feeMeta =
+      feeValue !== undefined && feeValue !== null && feeValue !== ""
+        ? ` (${feeValue}${feeUnit === "percent" ? "%" : feeUnit ? ` ${feeUnit}` : ""})`
+        : "";
+
+    return `Rs ${formatAmount(feeAmount)}${feeMeta}`;
   };
 
   const fetchStaff = useCallback(async () => {
@@ -247,8 +270,11 @@ const StaffDetail = () => {
     payload.append("email", formData.email);
     payload.append("phone", formData.phone);
     payload.append("dob", formData.dob);
+    payload.append("city", formData.city);
+    payload.append("Language", formData.Language);
     payload.append("role", formData.role);
     payload.append("isBusy", formData.isBusy ? "true" : "false");
+    payload.append("isOnline", formData.isOnline ? "true" : "false");
     payload.append("IDtype", formData.IDtype);
     payload.append("IDnumber", formData.IDnumber);
     payload.append("formStatus", formData.formStatus);
@@ -411,6 +437,9 @@ const StaffDetail = () => {
       serialNumber: (_, index) => index + 1,
       createdAt: (withdraw) => withdraw.createdAt || "",
       amount: (withdraw) => withdraw.amount ?? 0,
+      requestedAmount: (withdraw) => withdraw.requestedAmount ?? withdraw.amount ?? 0,
+      withdrawalFee: (withdraw) => withdraw.withdrawalFee ?? 0,
+      finalAmount: (withdraw) => withdraw.finalAmount ?? withdraw.amount ?? 0,
       statusLabel: (withdraw) => withdraw.statusLabel || "",
       UPI: (withdraw) => withdraw.UPI || "",
       bankHolderName: (withdraw) => withdraw.bankHolderName || "",
@@ -824,7 +853,9 @@ const StaffDetail = () => {
                   <tr>
                     <th><SortableHeader label="#" sortKey="serialNumber" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
                     <th><SortableHeader label="Date" sortKey="createdAt" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
-                    <th><SortableHeader label="Amount" sortKey="amount" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
+                    <th><SortableHeader label="Requested" sortKey="requestedAmount" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
+                    <th><SortableHeader label="Fee" sortKey="withdrawalFee" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
+                    <th><SortableHeader label="Final Amount" sortKey="finalAmount" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
                     <th><SortableHeader label="Status" sortKey="statusLabel" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
                     <th><SortableHeader label="UPI" sortKey="UPI" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
                     <th><SortableHeader label="Bank Holder" sortKey="bankHolderName" sortConfig={withdrawSortConfig} onSort={handleWithdrawSort} /></th>
@@ -849,7 +880,11 @@ const StaffDetail = () => {
                         <td>{withdrawPageStart + index + 1}</td>
                         <td>{withdraw.displayDate || "-"}</td>
                         <td className="text-primary">
-                          Rs {formatAmount(withdraw.amount)}
+                          Rs {formatAmount(withdraw.requestedAmount ?? withdraw.amount)}
+                        </td>
+                        <td>{formatWithdrawFee(withdraw)}</td>
+                        <td className="text-success">
+                          Rs {formatAmount(withdraw.finalAmount ?? withdraw.amount)}
                         </td>
                         <td>
                           <Badge bg={withdrawBadge}>{withdrawStatus}</Badge>
@@ -952,6 +987,24 @@ const StaffDetail = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
+              <Form.Label>City</Form.Label>
+              <Form.Control
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Language</Form.Label>
+              <Form.Control
+                name="Language"
+                value={formData.Language}
+                onChange={handleInputChange}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
               <Form.Label>Role</Form.Label>
               <Form.Control
                 name="role"
@@ -966,6 +1019,15 @@ const StaffDetail = () => {
               label="Busy Status"
               name="isBusy"
               checked={formData.isBusy}
+              onChange={handleInputChange}
+            />
+
+            <Form.Check
+              className="mb-3"
+              type="checkbox"
+              label="Online Status"
+              name="isOnline"
+              checked={formData.isOnline}
               onChange={handleInputChange}
             />
 

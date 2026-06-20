@@ -16,6 +16,11 @@ import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 import TablePagination from "@/components/TablePagination";
 import {
+  getListFromResponse,
+  getTotalPagesFromResponse,
+} from "@/helper/pagination";
+import useUrlPageState from "@/hooks/useUrlPageState";
+import {
   GetSupportTicketByIdApi,
   GetSupportTicketDashboardApi,
   GetSupportTicketListApi,
@@ -47,7 +52,7 @@ const SupportPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [totalPages, setTotalPages] = useState(1);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isListLoading, setIsListLoading] = useState(true);
@@ -68,7 +73,7 @@ const SupportPage = () => {
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, setCurrentPage]);
 
   const fetchDashboard = useCallback(async () => {
     setIsDashboardLoading(true);
@@ -111,8 +116,8 @@ const SupportPage = () => {
           const isSuccess = resp?.status === true || resp?.success === true;
 
           if (isSuccess) {
-            setTickets(Array.isArray(resp?.data) ? resp.data : []);
-            setTotalPages(resp?.pagination?.totalPages || 1);
+            setTickets(getListFromResponse(resp));
+            setTotalPages(getTotalPagesFromResponse(resp, limit));
           } else {
             setTickets([]);
             setTotalPages(1);
@@ -344,85 +349,87 @@ const SupportPage = () => {
               </div>
             </Card.Body>
 
-            <Table responsive className="text-nowrap mb-0 mt-3">
-              <thead className="table-light">
-                <tr>
-                  <th>Ticket</th>
-                  <th>User</th>
-                  <th>Description</th>
-                  <th>Status</th>
-                  <th>Admin Note</th>
-                  <th>Created</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isListLoading ? (
+            <div className="admin-table-scroll">
+              <Table className="text-nowrap mb-0 mt-3 admin-wide-table">
+                <thead className="table-light">
                   <tr>
-                    <td colSpan="7" className="text-center py-5">
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Loading support tickets...
-                    </td>
+                    <th>Ticket</th>
+                    <th>User</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Admin Note</th>
+                    <th>Created</th>
+                    <th>Action</th>
                   </tr>
-                ) : tickets.length > 0 ? (
-                  tickets.map((ticket) => (
-                    <tr key={ticket?._id || ticket?.ticketId}>
-                      <td>
-                        <div className="support-ticket-summary">
-                          <strong>#{ticket?.ticketId || "-"}</strong>
-                          <span className="text-muted small">
-                            {ticket?.resolvedAt
-                              ? `Resolved: ${ticket.resolvedAt}`
-                              : "Not resolved yet"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="support-ticket-summary">
-                          <strong>{ticket?.user?.name || "-"}</strong>
-                          <span className="text-muted small">
-                            {ticket?.user?.email || ticket?.user?.phone || "-"}
-                          </span>
-                          <span className="text-muted small">
-                            Member ID: {ticket?.user?.memberID || "-"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="support-ticket-description">
-                        {ticket?.description || "-"}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge bg-${getStatusBadgeClass(
-                            ticket?.status
-                          )}`}
-                        >
-                          {ticket?.status || "-"}
-                        </span>
-                      </td>
-                      <td className="support-ticket-description">
-                        {ticket?.adminNote || "-"}
-                      </td>
-                      <td>{ticket?.createdDateLabel || "-"}</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          onClick={() => fetchTicketDetail(ticket?.ticketId)}
-                        >
-                          View
-                        </Button>
+                </thead>
+                <tbody>
+                  {isListLoading ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-5">
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        Loading support tickets...
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="text-center py-5">
-                      No support tickets found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
+                  ) : tickets.length > 0 ? (
+                    tickets.map((ticket) => (
+                      <tr key={ticket?._id || ticket?.ticketId}>
+                        <td>
+                          <div className="support-ticket-summary">
+                            <strong>#{ticket?.ticketId || "-"}</strong>
+                            <span className="text-muted small">
+                              {ticket?.resolvedAt
+                                ? `Resolved: ${ticket.resolvedAt}`
+                                : "Not resolved yet"}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="support-ticket-summary">
+                            <strong>{ticket?.user?.name || "-"}</strong>
+                            <span className="text-muted small">
+                              {ticket?.user?.email || ticket?.user?.phone || "-"}
+                            </span>
+                            <span className="text-muted small">
+                              Member ID: {ticket?.user?.memberID || "-"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="support-ticket-description">
+                          {ticket?.description || "-"}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge bg-${getStatusBadgeClass(
+                              ticket?.status
+                            )}`}
+                          >
+                            {ticket?.status || "-"}
+                          </span>
+                        </td>
+                        <td className="support-ticket-description">
+                          {ticket?.adminNote || "-"}
+                        </td>
+                        <td>{ticket?.createdDateLabel || "-"}</td>
+                        <td>
+                          <Button
+                            size="sm"
+                            onClick={() => fetchTicketDetail(ticket?.ticketId)}
+                          >
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="text-center py-5">
+                        No support tickets found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </div>
 
             <TablePagination
               currentPage={currentPage}

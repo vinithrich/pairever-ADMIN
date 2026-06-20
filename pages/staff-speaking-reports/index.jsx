@@ -1,6 +1,7 @@
 import { PageHeading } from "@/widgets";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
+import useUrlPageState from "@/hooks/useUrlPageState";
 import {
   GetStaffListApi,
   GetSingleStaffApi,
@@ -156,7 +157,7 @@ const StaffSpeakingReportsPage = () => {
     fromDate: "",
     toDate: "",
   });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [sortConfig, setSortConfig] = useState({
     key: "totalDuration",
     direction: "desc",
@@ -169,7 +170,7 @@ const StaffSpeakingReportsPage = () => {
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, setCurrentPage]);
 
   const fetchReport = useCallback(async () => {
     setIsLoading(true);

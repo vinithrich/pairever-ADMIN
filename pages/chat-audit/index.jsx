@@ -1,4 +1,5 @@
 import TablePagination from "@/components/TablePagination";
+import useUrlPageState from "@/hooks/useUrlPageState";
 import {
   GetAdminChatConversationsApi,
   GetAdminChatMessagesApi,
@@ -65,7 +66,7 @@ const ChatAudit = () => {
   const dispatch = useDispatch();
 
   const [conversations, setConversations] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [staffId, setStaffId] = useState("");

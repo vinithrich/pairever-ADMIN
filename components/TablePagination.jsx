@@ -27,18 +27,34 @@ const getPaginationItems = (currentPage, totalPages) => {
 };
 
 const TablePagination = ({ currentPage, totalPages, onPageChange }) => {
-  if (totalPages <= 1) {
+  const safeTotalPages = Math.max(1, Number(totalPages) || 1);
+  const safeCurrentPage = Math.min(
+    safeTotalPages,
+    Math.max(1, Number(currentPage) || 1)
+  );
+
+  if (safeTotalPages <= 1) {
     return null;
   }
 
-  const items = getPaginationItems(currentPage, totalPages);
+  const handleClick = (event, page) => {
+    event.preventDefault();
+
+    if (page < 1 || page > safeTotalPages || page === safeCurrentPage) {
+      return;
+    }
+
+    onPageChange(page);
+  };
+
+  const items = getPaginationItems(safeCurrentPage, safeTotalPages);
 
   return (
     <div className="table-pagination d-flex justify-content-center mt-3 px-3 pb-3 overflow-auto">
       <Pagination className="mb-0 flex-nowrap align-items-center">
         <Pagination.Prev
-          disabled={currentPage === 1}
-          onClick={() => onPageChange(currentPage - 1)}
+          disabled={safeCurrentPage === 1}
+          onClick={(event) => handleClick(event, safeCurrentPage - 1)}
         />
 
         {items.map((item) => {
@@ -49,8 +65,8 @@ const TablePagination = ({ currentPage, totalPages, onPageChange }) => {
           return (
             <Pagination.Item
               key={item}
-              active={currentPage === item}
-              onClick={() => onPageChange(item)}
+              active={safeCurrentPage === item}
+              onClick={(event) => handleClick(event, item)}
             >
               {item}
             </Pagination.Item>
@@ -58,8 +74,8 @@ const TablePagination = ({ currentPage, totalPages, onPageChange }) => {
         })}
 
         <Pagination.Next
-          disabled={currentPage === totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
+          disabled={safeCurrentPage === safeTotalPages}
+          onClick={(event) => handleClick(event, safeCurrentPage + 1)}
         />
       </Pagination>
     </div>

@@ -5,6 +5,7 @@ import { Badge, Button, Card, Col, Container, Form, Modal, Row, Table } from "re
 import Notiflix from "notiflix";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
+import useUrlPageState from "@/hooks/useUrlPageState";
 import { sortRows } from "@/helper/tableSort";
 import * as apiHelper from "@/helper/apiHelper";
 
@@ -57,7 +58,7 @@ const SubAdminManagement = () => {
   const router = useRouter();
   const [subAdmins, setSubAdmins] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState(null);

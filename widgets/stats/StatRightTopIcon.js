@@ -42,6 +42,14 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
   const valuePaths = info.keyPaths || info.keyPath;
   const currentCount = getSafeNumber(getValueByPaths(dashboardcountdata, valuePaths));
   const previousCount = getSafeNumber(getValueByPaths(previousCounts, valuePaths));
+  const descriptionValue = info.descriptionPath
+    ? getValueByPaths(dashboardcountdata, info.descriptionPath)
+    : null;
+  const description =
+    info.description ||
+    (descriptionValue
+      ? `${info.descriptionPrefix || ""}${descriptionValue}${info.descriptionSuffix || ""}`
+      : "");
   const difference = currentCount - previousCount;
   const formattedCurrentCount = `${info.prefix || ""}${currentCount.toLocaleString()}`;
   const formattedDifference = `${difference > 0 ? "+" : ""}${info.prefix || ""}${Math.abs(
@@ -76,6 +84,10 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
                   -{formattedDifference.replace(/^\+/, "")} since last visit
                 </p>
               )}
+
+              {description ? (
+                <p className="text-muted fw-semibold mb-0">{description}</p>
+              ) : null}
             </div>
           </div>
         </Card.Body>

@@ -18,6 +18,75 @@ import {
   updateWithdrawStatusApi, // reuse or rename if you want
 } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const formatAmount = (value) => {
+  return (Number(value) || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const hasAmountValue = (value) =>
+  value !== undefined && value !== null && value !== "";
+
+const toAmount = (value) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
+const pickAmount = (...values) => {
+  const availableValues = values.filter(hasAmountValue);
+  const positiveValue = availableValues.find((value) => toAmount(value) > 0);
+
+  if (positiveValue !== undefined) {
+    return toAmount(positiveValue);
+  }
+
+  return availableValues.length > 0 ? toAmount(availableValues[0]) : 0;
+};
+
+const getRequestedAmount = (withdraw) =>
+  pickAmount(
+    withdraw?.requestedAmount,
+    withdraw?.requestAmount,
+    withdraw?.withdrawAmount,
+    withdraw?.withdrawalAmount,
+    withdraw?.totalAmount,
+    withdraw?.amount
+  );
+
+const getWithdrawalFee = (withdraw) =>
+  pickAmount(withdraw?.withdrawalFee, withdraw?.fee, withdraw?.withdrawFee);
+
+const getFinalAmount = (withdraw) => {
+  const requestedAmount = getRequestedAmount(withdraw);
+  const withdrawalFee = getWithdrawalFee(withdraw);
+
+  return pickAmount(
+    withdraw?.finalAmount,
+    withdraw?.payableAmount,
+    withdraw?.netAmount,
+    withdraw?.amount,
+    requestedAmount - withdrawalFee
+  );
+};
+
+const formatFeeDetails = (withdraw) => {
+  const feeAmount = getWithdrawalFee(withdraw);
+  const feeValue = withdraw?.withdrawalFeeValue;
+  const feeUnit = withdraw?.withdrawalFeeUnit;
+
+  if (!feeAmount && !feeValue) {
+    return "-";
+  }
+
+  const feeMeta =
+    feeValue !== undefined && feeValue !== null && feeValue !== ""
+      ? ` (${feeValue}${feeUnit === "percent" ? "%" : feeUnit ? ` ${feeUnit}` : ""})`
+      : "";
+
+  return `Rs ${formatAmount(feeAmount)}${feeMeta}`;
+};
+
 const WithdrawDetail = () => {
   const router = useRouter();
   const { userId } = router.query;
@@ -199,7 +268,17 @@ console.log("userId",userId)
             <tr>
               <th>Requested Amount</th>
               <td className="fw-bold text-primary">
-                ₹{withdraw.amount}
+                Rs {formatAmount(getRequestedAmount(withdraw))}
+              </td>
+            </tr>
+            <tr>
+              <th>Withdrawal Fee</th>
+              <td>{formatFeeDetails(withdraw)}</td>
+            </tr>
+            <tr>
+              <th>Final Amount</th>
+              <td className="fw-bold text-success">
+                Rs {formatAmount(getFinalAmount(withdraw))}
               </td>
             </tr>
             <tr>

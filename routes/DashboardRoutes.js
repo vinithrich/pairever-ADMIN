@@ -112,6 +112,13 @@ export const DashboardMenu = [
   },
   {
     id: uuid(),
+    title: "Fee Management",
+    icon: "percent",
+    link: "/fee-management",
+    accessKey: "feeManagement",
+  },
+  {
+    id: uuid(),
     title: "Ad Banner",
     icon: "image",
     link: "/ad-banner",

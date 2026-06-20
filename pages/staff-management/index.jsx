@@ -14,6 +14,7 @@ import {
 import { useDispatch } from "react-redux";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
+import useUrlPageState from "@/hooks/useUrlPageState";
 import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
@@ -30,7 +31,7 @@ const ManageInvoice = () => {
   const dispatch = useDispatch();
 
   const [userList, setUserList] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [searchQuery, setSearchQuery] = useState("");
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -130,7 +131,7 @@ const ManageInvoice = () => {
         setDeletingStaffId("");
       }
     },
-    [currentPage, deletingStaffId, dispatch, GetStaffDetails, userList.length]
+    [currentPage, deletingStaffId, dispatch, GetStaffDetails, setCurrentPage, userList.length]
   );
 
   const openNotifyModal = (staff) => {

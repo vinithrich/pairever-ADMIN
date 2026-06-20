@@ -1,6 +1,7 @@
 import { PageHeading } from "@/widgets";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
+import useUrlPageState from "@/hooks/useUrlPageState";
 import { GetOverallCallHistoryApi } from "@/helper/Redux/ReduxThunk/Homepage";
 import { sortRows } from "@/helper/tableSort";
 import { useRouter } from "next/router";
@@ -126,7 +127,7 @@ const OverallCallHistoryPage = () => {
     fromDate: "",
     toDate: "",
   });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -144,7 +145,7 @@ const OverallCallHistoryPage = () => {
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, setCurrentPage]);
 
   const fetchCallHistory = useCallback(async () => {
     setIsLoading(true);

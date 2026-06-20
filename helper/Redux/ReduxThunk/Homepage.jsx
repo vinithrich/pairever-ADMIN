@@ -623,6 +623,86 @@ export const getDepositHistoryApi =
       }
     };
 
+const hasWithdrawAmountValue = (value) =>
+  value !== undefined && value !== null && value !== "";
+
+const toWithdrawAmount = (value) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
+const pickWithdrawAmount = (...values) => {
+  const availableValues = values.filter(hasWithdrawAmountValue);
+  const positiveValue = availableValues.find(
+    (value) => toWithdrawAmount(value) > 0
+  );
+
+  if (positiveValue !== undefined) {
+    return toWithdrawAmount(positiveValue);
+  }
+
+  return availableValues.length > 0
+    ? toWithdrawAmount(availableValues[0])
+    : 0;
+};
+
+const normalizeWithdrawRecord = (withdraw = {}) => {
+  const requestedAmount = pickWithdrawAmount(
+    withdraw.requestedAmount,
+    withdraw.requestAmount,
+    withdraw.withdrawAmount,
+    withdraw.withdrawalAmount,
+    withdraw.totalAmount,
+    withdraw.amount
+  );
+
+  const withdrawalFee = pickWithdrawAmount(
+    withdraw.withdrawalFee,
+    withdraw.fee,
+    withdraw.withdrawFee
+  );
+
+  const finalAmount = pickWithdrawAmount(
+    withdraw.finalAmount,
+    withdraw.payableAmount,
+    withdraw.netAmount,
+    withdraw.amount,
+    requestedAmount - withdrawalFee
+  );
+
+  return {
+    ...withdraw,
+    requestedAmount,
+    withdrawalFee,
+    withdrawalFeeUnit: withdraw.withdrawalFeeUnit ?? "percent",
+    withdrawalFeeValue: withdraw.withdrawalFeeValue ?? 0,
+    finalAmount,
+    amount: finalAmount,
+  };
+};
+
+const normalizeWithdrawResponse = (response) => {
+  if (!response?.status) {
+    return response;
+  }
+
+  if (Array.isArray(response.data)) {
+    return {
+      ...response,
+      data: response.data.map(normalizeWithdrawRecord),
+    };
+  }
+
+  if (response.data && typeof response.data === "object") {
+    return {
+      ...response,
+      data: normalizeWithdrawRecord(response.data),
+    };
+  }
+
+  return response;
+};
+
 export const GetWithdrawhistoryApi =
   (params = {}, callback = () => { }) =>
     async (dispatch) => {
@@ -631,7 +711,7 @@ export const GetWithdrawhistoryApi =
         const response = await apiHelper.getRequest(
           `getWithdrawhistory?${queryString}`
         );
-        callback(response);
+        callback(normalizeWithdrawResponse(response));
       } catch (e) { }
     };
 
@@ -643,8 +723,9 @@ export const GetStaffWithdrawHistoryApi =
         const response = await apiHelper.getRequest(
           `getStaffWithdrawHistory?${queryString}`
         );
-        callback(response);
-        return response;
+        const normalizedResponse = normalizeWithdrawResponse(response);
+        callback(normalizedResponse);
+        return normalizedResponse;
       } catch (e) {
         callback({
           status: false,
@@ -791,6 +872,57 @@ export const SavePaymentGatewayApi =
           "savePaymentGateway",
           data
         );
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
+export const GetFeeManagementApi =
+  (callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest("getFeeManagement");
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
+export const SaveFeeManagementApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("saveFeeManagement", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
+export const DeleteFeeManagementApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("deleteFeeManagement", data);
         callback(response);
         return response;
       } catch (e) {

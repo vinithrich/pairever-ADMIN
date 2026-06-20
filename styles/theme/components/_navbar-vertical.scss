@@ -19,15 +19,35 @@
   -o-transition: margin 0.25s ease-out;
   transition: margin 0.25s ease-out;
   z-index: 11;
+  overflow: hidden;
 
   .slimScrollDiv {
     height: 100% !important;
     overflow-y: auto;
   }
 
+  .navbar-vertical-scroll {
+    height: 100vh;
+    max-height: 100vh;
+  }
+
+  .simplebar-content {
+    min-height: 100%;
+    padding-bottom: 1rem !important;
+  }
+
+  .simplebar-track.simplebar-vertical {
+    width: 10px;
+    background: rgba($white, 0.04);
+  }
+
+  .simplebar-scrollbar::before {
+    background: rgba($brand-lime-end, 0.75);
+    opacity: 1;
+  }
+
   .nav-scroller {
-    height: 100% !important;
-    overflow-y: auto;
+    height: auto !important;
   }
 
   .navbar-brand {

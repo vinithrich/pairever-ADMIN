@@ -16,6 +16,11 @@ import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 import TablePagination from "@/components/TablePagination";
 import {
+  getListFromResponse,
+  getTotalPagesFromResponse,
+} from "@/helper/pagination";
+import useUrlPageState from "@/hooks/useUrlPageState";
+import {
   GetStaffReportByIdApi,
   GetStaffReportListApi,
   SendStaffWarningPushApi,
@@ -62,7 +67,7 @@ const StaffReportsPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPageState();
   const [totalPages, setTotalPages] = useState(1);
   const [isListLoading, setIsListLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -84,7 +89,7 @@ const StaffReportsPage = () => {
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, setCurrentPage]);
 
   const fetchReports = useCallback(async () => {
     setIsListLoading(true);
@@ -101,8 +106,8 @@ const StaffReportsPage = () => {
           const isSuccess = resp?.status === true || resp?.success === true;
 
           if (isSuccess) {
-            setReports(Array.isArray(resp?.data) ? resp.data : []);
-            setTotalPages(resp?.pagination?.totalPages || 1);
+            setReports(getListFromResponse(resp));
+            setTotalPages(getTotalPagesFromResponse(resp, limit));
           } else {
             setReports([]);
             setTotalPages(1);
@@ -341,75 +346,77 @@ const StaffReportsPage = () => {
               </div>
             </Card.Body>
 
-            <Table responsive className="text-nowrap mb-0 mt-3">
-              <thead className="table-light">
-                <tr>
-                  <th>User</th>
-                  <th>Staff</th>
-                  <th>Rating</th>
-                  <th>Comment</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isListLoading ? (
+            <div className="admin-table-scroll">
+              <Table className="text-nowrap mb-0 mt-3 admin-wide-table">
+                <thead className="table-light">
                   <tr>
-                    <td colSpan="7" className="text-center py-5">
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Loading staff reports...
-                    </td>
+                    <th>User</th>
+                    <th>Staff</th>
+                    <th>Rating</th>
+                    <th>Comment</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Action</th>
                   </tr>
-                ) : reports.length > 0 ? (
-                  reports.map((report) => (
-                    <tr key={report?._id}>
-                      <td>{renderPersonSummary(report?.user, "Unknown User")}</td>
-                      <td>{renderPersonSummary(report?.staff, "Unknown Staff")}</td>
-                      <td>{report?.rating ?? "-"}</td>
-                      <td className="support-ticket-description">
-                        {report?.comment || "-"}
-                      </td>
-                      <td>
-                        <span
-                          className={`badge bg-${getStatusBadgeClass(
-                            report?.status
-                          )}`}
-                        >
-                          {report?.status || "-"}
-                        </span>
-                      </td>
-                      <td>{formatDateLabel(report?.createdAt)}</td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => fetchReportDetail(report?._id)}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="warning"
-                            className="text-dark"
-                            onClick={() => openWarningModal(report)}
-                            disabled={!report?.staff?._id || isWarningSending}
-                          >
-                            Warning
-                          </Button>
-                        </div>
+                </thead>
+                <tbody>
+                  {isListLoading ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-5">
+                        <Spinner animation="border" size="sm" className="me-2" />
+                        Loading staff reports...
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="text-center py-5">
-                      No staff reports found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
+                  ) : reports.length > 0 ? (
+                    reports.map((report) => (
+                      <tr key={report?._id}>
+                        <td>{renderPersonSummary(report?.user, "Unknown User")}</td>
+                        <td>{renderPersonSummary(report?.staff, "Unknown Staff")}</td>
+                        <td>{report?.rating ?? "-"}</td>
+                        <td className="support-ticket-description">
+                          {report?.comment || "-"}
+                        </td>
+                        <td>
+                          <span
+                            className={`badge bg-${getStatusBadgeClass(
+                              report?.status
+                            )}`}
+                          >
+                            {report?.status || "-"}
+                          </span>
+                        </td>
+                        <td>{formatDateLabel(report?.createdAt)}</td>
+                        <td>
+                          <div className="d-flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => fetchReportDetail(report?._id)}
+                            >
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="warning"
+                              className="text-dark"
+                              onClick={() => openWarningModal(report)}
+                              disabled={!report?.staff?._id || isWarningSending}
+                            >
+                              Warning
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="text-center py-5">
+                        No staff reports found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </div>
 
             <TablePagination
               currentPage={currentPage}

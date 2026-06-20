@@ -9,6 +9,7 @@ export const ROUTE_ACCESS = [
   { path: "/withdraw-management", accessKey: "withdrawManagement" },
   { path: "/payments-structure", accessKey: "paymentsStructure" },
   { path: "/payment-gateway-management", accessKey: "paymentGateway" },
+  { path: "/fee-management", accessKey: "feeManagement" },
   { path: "/ad-banner", accessKey: "adBanner" },
   { path: "/app-update", accessKey: "appUpdate" },
   { path: "/maintenance-status", accessKey: "maintenanceStatus" },
