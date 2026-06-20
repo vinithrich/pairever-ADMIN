@@ -15,6 +15,7 @@ import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
 import { sortRows } from "@/helper/tableSort";
+import * as XLSX from "xlsx";
 
 import Notiflix from "notiflix";
 import {  GetWithdrawhistoryApi, } from "@/helper/Redux/ReduxThunk/Homepage";
@@ -75,6 +76,7 @@ const ManageInvoice = () => {
   const [toDateFilter, setToDateFilter] = useState("");
   const [counts, setCounts] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [sortConfig, setSortConfig] = useState({
@@ -85,11 +87,11 @@ const ManageInvoice = () => {
   const handleGoBack = () => router.back();
 
 
-  const getStaffDetails = useCallback(async () => {
+  const buildWithdrawQuery = useCallback((page, limit) => {
     const queryParams = {
       search: searchQuery,
-      page: currentPage,
-      limit: leadsPerPage,
+      page,
+      limit,
     };
 
     if (statusFilter) {
@@ -116,6 +118,20 @@ const ManageInvoice = () => {
       queryParams.toDate = toDateFilter;
     }
 
+    return queryParams;
+  }, [
+    dateFilter,
+    fromDateFilter,
+    monthFilter,
+    reportType,
+    searchQuery,
+    statusFilter,
+    toDateFilter,
+  ]);
+
+  const getStaffDetails = useCallback(async () => {
+    const queryParams = buildWithdrawQuery(currentPage, leadsPerPage);
+
     await dispatch(
       GetWithdrawhistoryApi(queryParams, (resp) => {
         if (resp?.status) {
@@ -132,18 +148,7 @@ const ManageInvoice = () => {
         }
       })
     );
-  }, [
-    currentPage,
-    dateFilter,
-    dispatch,
-    fromDateFilter,
-    leadsPerPage,
-    monthFilter,
-    reportType,
-    searchQuery,
-    statusFilter,
-    toDateFilter,
-  ]);
+  }, [buildWithdrawQuery, currentPage, dispatch, leadsPerPage]);
 
   useEffect(() => {
     getStaffDetails();
@@ -193,6 +198,77 @@ const ManageInvoice = () => {
       direction:
         prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
+  };
+
+  const handleDownloadExcel = async () => {
+    setIsExporting(true);
+
+    try {
+      const exportLimit = 500;
+      let page = 1;
+      let totalPagesForExport = 1;
+      const records = [];
+
+      do {
+        const response = await new Promise((resolve) => {
+          dispatch(
+            GetWithdrawhistoryApi(
+              buildWithdrawQuery(page, exportLimit),
+              resolve
+            )
+          );
+        });
+
+        if (!response?.status) {
+          throw new Error(response?.message || "Unable to download withdraw records");
+        }
+
+        records.push(...(response.data || []));
+        totalPagesForExport = Math.max(1, Number(response.pagination?.totalPages) || 1);
+        page += 1;
+      } while (page <= totalPagesForExport);
+
+      if (!records.length) {
+        Notiflix.Notify.info("No withdraw records found for the selected filters");
+        return;
+      }
+
+      const rows = records.map((withdraw, index) => {
+        const requestedAmount = Number(withdraw.requestedAmount ?? withdraw.amount ?? 0);
+        const tds = Number((requestedAmount * 0.01).toFixed(2));
+        const platformFee = Number((requestedAmount * 0.02).toFixed(2));
+
+        return {
+          "S.No": index + 1,
+          "Member ID": withdraw.memberID || "-",
+          Name: withdraw.name || "-",
+          Phone: withdraw.phone || "-",
+          "Requested Amount": requestedAmount,
+          "TDS (1%)": tds,
+          "Platform Fee (2%)": platformFee,
+          "Total Fee (3%)": Number((tds + platformFee).toFixed(2)),
+          "Final Amount": Number(withdraw.finalAmount ?? withdraw.amount ?? requestedAmount - tds - platformFee),
+          Status: getStatusLabel(withdraw.status).label,
+          "UPI ID": withdraw.UPI || "-",
+          "Bank Holder": withdraw.bankHolderName || "-",
+          "Account Number": withdraw.accountNumber || "-",
+          IFSC: withdraw.IFSC || "-",
+          "Requested At": withdraw.createdAt
+            ? new Date(withdraw.createdAt).toLocaleString("en-IN")
+            : "-",
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Withdraw Report");
+      XLSX.writeFile(workbook, `withdraw-report-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      Notiflix.Notify.success("Withdraw Excel report downloaded");
+    } catch (error) {
+      Notiflix.Notify.failure(error?.message || "Failed to download withdraw report");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const sortedUsers = useMemo(() => {
@@ -337,8 +413,23 @@ const ManageInvoice = () => {
                 Clear
               </Button>
             </Col>
+
+            <Col xs={12} md="auto">
+              <Button
+                type="button"
+                variant="success"
+                onClick={handleDownloadExcel}
+                disabled={isExporting}
+              >
+                {isExporting ? "Preparing Excel..." : "Download Excel"}
+              </Button>
+            </Col>
           </Row>
         </Form>
+      </div>
+
+      <div className="alert alert-info mt-4 mb-0" role="note">
+        <strong>Withdrawal fee: 3%</strong> — 1% TDS and 2% Platform Fee.
       </div>
 
       {summaryItems.length > 0 ? (
@@ -369,7 +460,7 @@ const ManageInvoice = () => {
                   <th><SortableHeader label="Phone" sortKey="phone" sortConfig={sortConfig} onSort={handleSort} /></th>
                   {/* <th>DOB</th> */}
                   <th><SortableHeader label="Requested" sortKey="requestedAmount" sortConfig={sortConfig} onSort={handleSort} /></th>
-                  <th><SortableHeader label="Fee" sortKey="withdrawalFee" sortConfig={sortConfig} onSort={handleSort} /></th>
+                  <th><SortableHeader label="Fee (3%)" sortKey="withdrawalFee" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Final Amount" sortKey="finalAmount" sortConfig={sortConfig} onSort={handleSort} /></th>
                   {/* <th>Role</th> */}
                   <th><SortableHeader label="is Verified" sortKey="verified" sortConfig={sortConfig} onSort={handleSort} /></th>

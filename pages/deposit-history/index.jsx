@@ -18,6 +18,7 @@ import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
 import { sortRows } from "@/helper/tableSort";
+import * as XLSX from "xlsx";
 
 import Notiflix from "notiflix";
 import { GetdepositHistoryApi } from "@/helper/Redux/ReduxThunk/Homepage";
@@ -130,6 +131,7 @@ const ManageInvoice = () => {
   const [dayWiseDeposits, setDayWiseDeposits] = useState([]);
   const [monthWiseDeposits, setMonthWiseDeposits] = useState([]);
   const [timeWiseDeposits, setTimeWiseDeposits] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [sortConfig, setSortConfig] = useState({
@@ -140,11 +142,11 @@ const ManageInvoice = () => {
   const handleGoBack = () => router.back();
 
 
-  const getUserDetails = useCallback(async () => {
+  const buildDepositQuery = useCallback((page, limit) => {
     const queryParams = {
       search: searchQuery,
-      page: currentPage,
-      limit: leadsPerPage,
+      page,
+      limit,
     };
 
     if (statusFilter) {
@@ -184,6 +186,24 @@ const ManageInvoice = () => {
       queryParams.order = serverOrder;
     }
 
+    return queryParams;
+  }, [
+    dayFilter,
+    endTimeFilter,
+    fromDateFilter,
+    languageFilter,
+    monthFilter,
+    searchQuery,
+    serverOrder,
+    serverSortBy,
+    startTimeFilter,
+    statusFilter,
+    toDateFilter,
+  ]);
+
+  const getUserDetails = useCallback(async () => {
+    const queryParams = buildDepositQuery(currentPage, leadsPerPage);
+
     await dispatch(
       GetdepositHistoryApi(queryParams, (resp) => {
         if (resp?.status) {
@@ -204,22 +224,7 @@ const ManageInvoice = () => {
         }
       })
     );
-  }, [
-    currentPage,
-    dayFilter,
-    dispatch,
-    endTimeFilter,
-    fromDateFilter,
-    languageFilter,
-    leadsPerPage,
-    monthFilter,
-    searchQuery,
-    serverOrder,
-    serverSortBy,
-    startTimeFilter,
-    statusFilter,
-    toDateFilter,
-  ]);
+  }, [buildDepositQuery, currentPage, dispatch, leadsPerPage]);
 
   useEffect(() => {
     getUserDetails();
@@ -274,6 +279,69 @@ const ManageInvoice = () => {
       direction:
         prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
+  };
+
+  const handleDownloadExcel = async () => {
+    setIsExporting(true);
+
+    try {
+      const exportLimit = 500;
+      let page = 1;
+      let totalPagesForExport = 1;
+      const records = [];
+
+      do {
+        const response = await new Promise((resolve) => {
+          dispatch(
+            GetdepositHistoryApi(buildDepositQuery(page, exportLimit), resolve)
+          );
+        });
+
+        if (!response?.status) {
+          throw new Error(response?.message || "Unable to download deposit records");
+        }
+
+        records.push(...(response.data || []));
+        totalPagesForExport = Math.max(1, Number(response.pagination?.totalPages) || 1);
+        page += 1;
+      } while (page <= totalPagesForExport);
+
+      if (!records.length) {
+        Notiflix.Notify.info("No deposit records found for the selected filters");
+        return;
+      }
+
+      const rows = records.map((deposit, index) => {
+        const depositAmount = Number(deposit.totalAmount ?? deposit.amount ?? 0);
+        const platformFee = 10;
+        const gst = Number((depositAmount * 0.18).toFixed(2));
+
+        return {
+          "S.No": index + 1,
+          Name: deposit.userName || "-",
+          Phone: deposit.userPhone || "-",
+          "Member ID": deposit.memberID || "-",
+          Language: deposit.Language || deposit.language || "-",
+          "Deposit Amount": depositAmount,
+          "Platform Fee": platformFee,
+          "GST (18%)": gst,
+          "Net Amount": Number((depositAmount - platformFee - gst).toFixed(2)),
+          Currency: deposit.currency || "INR",
+          Status: getDepositStatus(deposit.paymentStatus),
+          "Created At": formatDateTime(deposit.createdAt),
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Deposit Report");
+      XLSX.writeFile(workbook, `deposit-report-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      Notiflix.Notify.success("Deposit Excel report downloaded");
+    } catch (error) {
+      Notiflix.Notify.failure(error?.message || "Failed to download deposit report");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const sortedUsers = useMemo(() => {
@@ -495,6 +563,14 @@ const ManageInvoice = () => {
           </div>
           <Button type="button" variant="outline-light" onClick={clearFilters}>
             Clear
+          </Button>
+          <Button
+            type="button"
+            variant="success"
+            onClick={handleDownloadExcel}
+            disabled={isExporting}
+          >
+            {isExporting ? "Preparing Excel..." : "Download Excel"}
           </Button>
         </Form>
       </div>

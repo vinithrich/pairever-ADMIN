@@ -585,7 +585,15 @@ export const GetdepositHistoryApi =
           `getdeposithistory?${queryString}`
         );
         callback(response);
-      } catch (e) { }
+        return response;
+      } catch (e) {
+        const errorResponse = {
+          status: false,
+          message: e?.message || "Failed to fetch deposit history",
+        };
+        callback(errorResponse);
+        return errorResponse;
+      }
     };
 
 export const GetReferralHistoriesApi =
@@ -711,8 +719,17 @@ export const GetWithdrawhistoryApi =
         const response = await apiHelper.getRequest(
           `getWithdrawhistory?${queryString}`
         );
-        callback(normalizeWithdrawResponse(response));
-      } catch (e) { }
+        const normalizedResponse = normalizeWithdrawResponse(response);
+        callback(normalizedResponse);
+        return normalizedResponse;
+      } catch (e) {
+        const errorResponse = {
+          status: false,
+          message: e?.message || "Failed to fetch withdraw history",
+        };
+        callback(errorResponse);
+        return errorResponse;
+      }
     };
 
 export const GetStaffWithdrawHistoryApi =
