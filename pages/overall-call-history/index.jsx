@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
@@ -22,6 +23,14 @@ import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 
 const DEFAULT_LIMIT = 10;
+
+const DEFAULT_FILTERS = {
+  callType: "all",
+  userMemberID: "",
+  staffMemberID: "",
+  fromDate: "",
+  toDate: "",
+};
 
 const getNestedValue = (source, paths, fallback = undefined) => {
   for (const path of paths) {
@@ -91,6 +100,36 @@ const getPersonMeta = (call, role) =>
   call?.[`${role}Id`]?.memberID ||
   "-";
 
+const getPersonDetailId = (call, role) => {
+  const direct = call?.[`${role}Id`];
+
+  if (direct && typeof direct === "object") {
+    return direct?._id || direct?.id || "";
+  }
+
+  return (
+    call?.[role]?._id ||
+    call?.[role]?.id ||
+    (typeof direct === "string" ? direct : "") ||
+    ""
+  );
+};
+
+const renderPersonLink = (call, role) => {
+  const name = getPersonName(call, role);
+  const id = getPersonDetailId(call, role);
+  const href =
+    role === "staff" ? `/staff-management/${id}` : `/user-management/${id}`;
+
+  return id ? (
+    <Link href={href} className="text-decoration-none fw-semibold">
+      {name}
+    </Link>
+  ) : (
+    <strong>{name}</strong>
+  );
+};
+
 const getCallBadge = (type) => {
   if (type === "audio") return "primary";
   if (type === "video") return "danger";
@@ -120,13 +159,8 @@ const OverallCallHistoryPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filters, setFilters] = useState({
-    callType: "all",
-    userMemberID: "",
-    staffMemberID: "",
-    fromDate: "",
-    toDate: "",
-  });
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [debouncedFilters, setDebouncedFilters] = useState(DEFAULT_FILTERS);
   const [currentPage, setCurrentPage] = useUrlPageState();
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
@@ -147,30 +181,54 @@ const OverallCallHistoryPage = () => {
     return () => clearTimeout(timeoutId);
   }, [searchInput, setCurrentPage]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const nextFilters = {
+        ...filters,
+        userMemberID: filters.userMemberID.trim(),
+        staffMemberID: filters.staffMemberID.trim(),
+      };
+
+      setDebouncedFilters((previousFilters) =>
+        previousFilters.callType === nextFilters.callType &&
+        previousFilters.userMemberID === nextFilters.userMemberID &&
+        previousFilters.staffMemberID === nextFilters.staffMemberID &&
+        previousFilters.fromDate === nextFilters.fromDate &&
+        previousFilters.toDate === nextFilters.toDate
+          ? previousFilters
+          : nextFilters
+      );
+      setCurrentPage(1);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters, setCurrentPage]);
+
   const fetchCallHistory = useCallback(async () => {
     setIsLoading(true);
+    const activeFilters = debouncedFilters;
 
     const params = {
       page: currentPage,
       limit: DEFAULT_LIMIT,
       timezone,
-      callType: filters.callType,
+      callType: activeFilters.callType,
     };
 
     if (debouncedSearch) params.search = debouncedSearch;
-    if (filters.userMemberID.trim()) {
-      params.userMemberID = filters.userMemberID.trim();
+    if (activeFilters.userMemberID) {
+      params.userMemberID = activeFilters.userMemberID;
     }
-    if (filters.staffMemberID.trim()) {
-      params.staffMemberID = filters.staffMemberID.trim();
+    if (activeFilters.staffMemberID) {
+      params.staffMemberID = activeFilters.staffMemberID;
     }
-    if (filters.fromDate) {
-      params.fromDate = filters.fromDate;
-      params.startDate = filters.fromDate;
+    if (activeFilters.fromDate) {
+      params.fromDate = activeFilters.fromDate;
+      params.startDate = activeFilters.fromDate;
     }
-    if (filters.toDate) {
-      params.toDate = filters.toDate;
-      params.endDate = filters.toDate;
+    if (activeFilters.toDate) {
+      params.toDate = activeFilters.toDate;
+      params.endDate = activeFilters.toDate;
     }
 
     await dispatch(
@@ -246,7 +304,7 @@ const OverallCallHistoryPage = () => {
         setIsLoading(false);
       })
     );
-  }, [currentPage, debouncedSearch, dispatch, filters, timezone]);
+  }, [currentPage, debouncedFilters, debouncedSearch, dispatch, timezone]);
 
   useEffect(() => {
     fetchCallHistory();
@@ -263,13 +321,8 @@ const OverallCallHistoryPage = () => {
   const clearFilters = () => {
     setSearchInput("");
     setDebouncedSearch("");
-    setFilters({
-      callType: "all",
-      userMemberID: "",
-      staffMemberID: "",
-      fromDate: "",
-      toDate: "",
-    });
+    setFilters(DEFAULT_FILTERS);
+    setDebouncedFilters(DEFAULT_FILTERS);
     setCurrentPage(1);
   };
 
@@ -611,7 +664,7 @@ const OverallCallHistoryPage = () => {
                         </td>
                         <td>
                           <div className="support-ticket-summary">
-                            <strong>{getPersonName(call, "user")}</strong>
+                            {renderPersonLink(call, "user")}
                             <span className="text-muted small">
                               {getPersonMeta(call, "user")}
                             </span>
@@ -619,7 +672,7 @@ const OverallCallHistoryPage = () => {
                         </td>
                         <td>
                           <div className="support-ticket-summary">
-                            <strong>{getPersonName(call, "staff")}</strong>
+                            {renderPersonLink(call, "staff")}
                             <span className="text-muted small">
                               {getPersonMeta(call, "staff")}
                             </span>

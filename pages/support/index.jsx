@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -40,6 +41,19 @@ const getStatusBadgeClass = (status) => {
   }
 
   return "warning text-dark";
+};
+
+const renderUserName = (user, fallback = "-") => {
+  const id = user?._id || user?.id || "";
+  const name = user?.name || fallback;
+
+  return id ? (
+    <Link href={`/user-management/${id}`} className="text-decoration-none fw-semibold">
+      {name}
+    </Link>
+  ) : (
+    <strong>{name}</strong>
+  );
 };
 
 const SupportPage = () => {
@@ -385,7 +399,7 @@ const SupportPage = () => {
                         </td>
                         <td>
                           <div className="support-ticket-summary">
-                            <strong>{ticket?.user?.name || "-"}</strong>
+                            {renderUserName(ticket?.user)}
                             <span className="text-muted small">
                               {ticket?.user?.email || ticket?.user?.phone || "-"}
                             </span>
@@ -493,7 +507,8 @@ const SupportPage = () => {
                 <div className="support-detail-block">
                   <h6>User Information</h6>
                   <p>
-                    <strong>Name:</strong> {selectedTicket?.user?.name || "-"}
+                    <strong>Name:</strong>{" "}
+                    {renderUserName(selectedTicket?.user)}
                   </p>
                   <p>
                     <strong>Email:</strong> {selectedTicket?.user?.email || "-"}

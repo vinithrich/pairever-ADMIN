@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -59,6 +60,27 @@ const getStatusLabel = (status) => {
   }
 
   return { label: status || "-", variant: "secondary" };
+};
+
+const getStaffDetailId = (withdraw) => {
+  const candidates = [
+    withdraw?.staffId,
+    withdraw?.staff,
+    withdraw?.userId,
+    withdraw?.user,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (typeof candidate === "object") {
+      return candidate?._id || candidate?.id || "";
+    }
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+  }
+
+  return "";
 };
 
 const ManageInvoice = () => {
@@ -478,7 +500,18 @@ const ManageInvoice = () => {
                         {(currentPage - 1) * leadsPerPage + i + 1}
                       </td>
                       <td>{user.memberID || "-"}</td>
-                      <td>{user.name || "-"}</td>
+                      <td>
+                        {getStaffDetailId(user) ? (
+                          <Link
+                            href={`/staff-management/${getStaffDetailId(user)}`}
+                            className="text-decoration-none fw-semibold"
+                          >
+                            {user.name || "-"}
+                          </Link>
+                        ) : (
+                          user.name || "-"
+                        )}
+                      </td>
                       <td>{user.phone || "-"}</td>
                       {/* <td>{user.dob || "-"}</td> */}
                       <td>{formatCurrency(user.requestedAmount ?? user.amount)}</td>

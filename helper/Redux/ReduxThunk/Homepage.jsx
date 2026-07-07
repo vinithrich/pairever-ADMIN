@@ -576,6 +576,23 @@ export const DeleteStaffApi =
       }
     };
 
+export const ConvertStaffToUserApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("convertStaffToUser", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return result;
+      }
+    };
+
 export const GetdepositHistoryApi =
   (params = {}, callback = () => { }) =>
     async (dispatch) => {
@@ -590,6 +607,46 @@ export const GetdepositHistoryApi =
         const errorResponse = {
           status: false,
           message: e?.message || "Failed to fetch deposit history",
+        };
+        callback(errorResponse);
+        return errorResponse;
+      }
+    };
+
+export const GetUserPaymentCallRecordApi =
+  (params = {}, callback = () => { }) =>
+    async () => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `user-payment-call-record?${queryString}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        const errorResponse = {
+          status: false,
+          message: e?.message || "Failed to fetch user audit report",
+        };
+        callback(errorResponse);
+        return errorResponse;
+      }
+    };
+
+export const GetStaffAuditRecordApi =
+  (params = {}, callback = () => { }) =>
+    async () => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `staff-audit-record?${queryString}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        const errorResponse = {
+          status: false,
+          message: e?.message || "Failed to fetch staff audit report",
         };
         callback(errorResponse);
         return errorResponse;

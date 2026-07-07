@@ -1,4 +1,5 @@
 import TablePagination from "@/components/TablePagination";
+import Link from "next/link";
 import useUrlPageState from "@/hooks/useUrlPageState";
 import {
   GetAdminChatConversationsApi,
@@ -43,6 +44,22 @@ const getPersonName = (person) =>
 
 const getPersonMemberId = (person) =>
   person?.memberID || person?.memberId || person?.id || "";
+
+const getPersonDetailId = (person) => person?._id || person?.id || "";
+
+const renderPersonName = (person, type) => {
+  const name = getPersonName(person);
+  const id = getPersonDetailId(person);
+  const href = type === "staff" ? `/staff-management/${id}` : `/user-management/${id}`;
+
+  return id ? (
+    <Link href={href} className="text-decoration-none fw-semibold">
+      {name}
+    </Link>
+  ) : (
+    <span className="fw-semibold">{name}</span>
+  );
+};
 
 const getMessagePreview = (lastMessage) => {
   if (!lastMessage) return "-";
@@ -327,17 +344,13 @@ const ChatAudit = () => {
                     <tr key={conversation._id}>
                       <td>{(currentPage - 1) * limit + index + 1}</td>
                       <td>
-                        <div className="fw-semibold">
-                          {getPersonName(conversation.staff)}
-                        </div>
+                        <div>{renderPersonName(conversation.staff, "staff")}</div>
                         <div className="text-muted small">
                           {getPersonMemberId(conversation.staff)}
                         </div>
                       </td>
                       <td>
-                        <div className="fw-semibold">
-                          {getPersonName(conversation.user)}
-                        </div>
+                        <div>{renderPersonName(conversation.user, "user")}</div>
                         <div className="text-muted small">
                           {getPersonMemberId(conversation.user)}
                         </div>
@@ -398,8 +411,8 @@ const ChatAudit = () => {
           {selectedConversation ? (
             <div className="border-bottom pb-3 mb-3">
               <div className="fw-semibold">
-                {getPersonName(selectedConversation.user)} with{" "}
-                {getPersonName(selectedConversation.staff)}
+                {renderPersonName(selectedConversation.user, "user")} with{" "}
+                {renderPersonName(selectedConversation.staff, "staff")}
               </div>
               <div className="text-muted small">
                 User: {getPersonMemberId(selectedConversation.user) || "-"} |

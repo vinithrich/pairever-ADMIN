@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -24,6 +25,8 @@ import {
   SendUserPushApi,
 } from "@/helper/Redux/ReduxThunk/Homepage";
 
+const formatCoins = (value) => Math.round(Number(value) || 0).toLocaleString("en-IN");
+
 const ManageInvoice = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -31,6 +34,7 @@ const ManageInvoice = () => {
   const [userList, setUserList] = useState([]);
   const [currentPage, setCurrentPage] = useUrlPageState();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [fromDateFilter, setFromDateFilter] = useState("");
   const [toDateFilter, setToDateFilter] = useState("");
@@ -61,8 +65,8 @@ const ManageInvoice = () => {
       limit: leadsPerPage,
     };
 
-    if (searchQuery.trim()) {
-      queryParams.search = searchQuery.trim();
+    if (debouncedSearchQuery) {
+      queryParams.search = debouncedSearchQuery;
     }
 
     if (dateFilter) {
@@ -109,9 +113,18 @@ const ManageInvoice = () => {
     fromDateFilter,
     leadsPerPage,
     loginFilter,
-    searchQuery,
+    debouncedSearchQuery,
     toDateFilter,
   ]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+      setCurrentPage(1);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, setCurrentPage]);
 
   useEffect(() => {
     getUserDetails();
@@ -119,7 +132,6 @@ const ManageInvoice = () => {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleFilterChange = (setter) => (event) => {
@@ -129,6 +141,7 @@ const ManageInvoice = () => {
 
   const clearFilters = () => {
     setSearchQuery("");
+    setDebouncedSearchQuery("");
     setDateFilter("");
     setFromDateFilter("");
     setToDateFilter("");
@@ -188,6 +201,17 @@ const ManageInvoice = () => {
     },
     [currentPage, deletingUserId, dispatch, getUserDetails, setCurrentPage, userList.length]
   );
+
+  const openAuditReport = (user) => {
+    const identifier = user?.memberID || user?.phone || user?._id;
+
+    if (!identifier) {
+      Notiflix.Notify.failure("User audit identifier not found");
+      return;
+    }
+
+    router.push(`/user-audit-report/${encodeURIComponent(identifier)}`);
+  };
 
   const openNotifyModal = (user) => {
     setSelectedUser(user);
@@ -398,12 +422,23 @@ const ManageInvoice = () => {
                       <td>
                         {(currentPage - 1) * leadsPerPage + i + 1}
                       </td>
-                      <td>{user.name || "-"}</td>
+                      <td>
+                        {user._id ? (
+                          <Link
+                            href={`/user-management/${user._id}`}
+                            className="text-decoration-none fw-semibold"
+                          >
+                            {user.name || "-"}
+                          </Link>
+                        ) : (
+                          user.name || "-"
+                        )}
+                      </td>
                       <td>{user.phone || "-"}</td>
                       <td>{user.gender || "-"}</td>
                       <td>{user.DOB || "-"}</td>
                       <td>{user.Language || "-"}</td>
-                      <td>{user.coinBalance ?? 0}</td>
+                      <td>{formatCoins(user.coinBalance)}</td>
                       <td>{user.role || "-"}</td>
                       <td>
                         {user.isLogin ? (
@@ -424,6 +459,12 @@ const ManageInvoice = () => {
                             onClick={() => router.push(`/user-management/${user._id}`)}
                           >
                             View
+                          </button>
+                          <button
+                            className="btn btn-sm btn-warning"
+                            onClick={() => openAuditReport(user)}
+                          >
+                            Audit Report
                           </button>
                           <button
                             className="btn btn-sm btn-info"
@@ -469,7 +510,7 @@ const ManageInvoice = () => {
         <Modal.Body>
           <p className="text-muted mb-3">
             Sending to: <b>{selectedUser?.name || selectedUser?.phone || "-"}</b>
-            {" "}({selectedUser?.coinBalance ?? 0} coins)
+            {" "}({formatCoins(selectedUser?.coinBalance)} coins)
           </p>
 
           <Form>

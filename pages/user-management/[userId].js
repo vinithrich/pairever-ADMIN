@@ -45,8 +45,8 @@ const UserDetail = () => {
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balanceAmount, setBalanceAmount] = useState("");
   const [notificationForm, setNotificationForm] = useState({
-    title: "Someone is waiting for you",
-    body: "Someone is waiting for you. Open Pair Ever now and connect.",
+    title: "Someone Viewed Your Profile 👀",
+    body: "Someone interesting wants to meet you. Check it out now!",
   });
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",

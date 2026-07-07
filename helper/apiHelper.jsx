@@ -1,16 +1,18 @@
 let cancelController;
 
 export const authUrl = (() => {
+            return "http://103.181.21.210:9500/api/v1/admin/auth";
+
   switch (process.env.NODE_ENV) {
     case "development":
     case "devel":
-      return "https://api.pair-ever.com/api/v1/admin/auth";
-            // return "http://localhost:7000/api/v1/admin/auth";
+      // return "https://api.pair-ever.com/api/v1/admin/auth";
+            return "http://102.168.1.46:7000/api/v1/admin/auth";
 
   
     default:
-      return "https://api.pair-ever.com/api/v1/admin/auth";
-            // return "http://localhost:7000/api/v1/admin/auth";
+      // return "https://api.pair-ever.com/api/v1/admin/auth";
+            return "http://localhost:7000/api/v1/admin/auth";
   }
 })();
 

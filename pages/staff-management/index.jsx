@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -19,6 +20,7 @@ import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
 import {
+  ConvertStaffToUserApi,
   DeleteStaffApi,
   GetStaffListApi,
   SendStaffWarningPushApi,
@@ -38,6 +40,11 @@ const ManageInvoice = () => {
   const [deletingStaffId, setDeletingStaffId] = useState("");
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [convertStaff, setConvertStaff] = useState(null);
+  const [convertPreview, setConvertPreview] = useState(null);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [isConvertDryRunLoading, setIsConvertDryRunLoading] = useState(false);
+  const [isConvertingStaff, setIsConvertingStaff] = useState(false);
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [notificationForm, setNotificationForm] = useState({
     title: "",
@@ -133,6 +140,89 @@ const ManageInvoice = () => {
     },
     [currentPage, deletingStaffId, dispatch, GetStaffDetails, setCurrentPage, userList.length]
   );
+
+  const openAuditReport = (staff) => {
+    const identifier = staff?.memberID || staff?.phone || staff?._id;
+
+    if (!identifier) {
+      Notiflix.Notify.failure("Staff audit identifier not found");
+      return;
+    }
+
+    router.push(`/staff-audit-report/${encodeURIComponent(identifier)}`);
+  };
+
+  const canConvertStaffToUser = (staff) =>
+    staff?.isApproved === "0" && staff?.convertedToUser !== true;
+
+  const openConvertModal = async (staff) => {
+    if (!staff?._id) {
+      Notiflix.Notify.failure("Valid staffId is required");
+      return;
+    }
+
+    setConvertStaff(staff);
+    setConvertPreview(null);
+    setShowConvertModal(true);
+    setIsConvertDryRunLoading(true);
+
+    const resp = await dispatch(
+      ConvertStaffToUserApi({
+        staffId: staff._id,
+        dryRun: true,
+      })
+    );
+
+    if (resp?.status || resp?.success) {
+      setConvertPreview(resp?.data || {});
+    } else {
+      Notiflix.Notify.failure(resp?.message || "Failed to prepare conversion");
+      setShowConvertModal(false);
+      setConvertStaff(null);
+    }
+
+    setIsConvertDryRunLoading(false);
+  };
+
+  const closeConvertModal = () => {
+    if (isConvertDryRunLoading || isConvertingStaff) return;
+
+    setShowConvertModal(false);
+    setConvertStaff(null);
+    setConvertPreview(null);
+  };
+
+  const handleConvertStaffToUser = async () => {
+    if (!convertStaff?._id || isConvertingStaff) {
+      return;
+    }
+
+    setIsConvertingStaff(true);
+
+    const resp = await dispatch(
+      ConvertStaffToUserApi({
+        staffId: convertStaff._id,
+        reason: "Wrongly registered in staff login",
+      })
+    );
+
+    if (resp?.status || resp?.success) {
+      Notiflix.Notify.success("Staff converted to user successfully");
+      setShowConvertModal(false);
+      setConvertStaff(null);
+      setConvertPreview(null);
+
+      if (userList.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+      } else {
+        await GetStaffDetails();
+      }
+    } else {
+      Notiflix.Notify.failure(resp?.message || "Failed to convert staff to user");
+    }
+
+    setIsConvertingStaff(false);
+  };
 
   const openNotifyModal = (staff) => {
     setSelectedStaff(staff);
@@ -287,7 +377,18 @@ const ManageInvoice = () => {
                         {(currentPage - 1) * leadsPerPage + i + 1}
                       </td>
                       <td>{user.memberID || "-"}</td>
-                      <td>{user.name || "-"}</td>
+                      <td>
+                        {user._id ? (
+                          <Link
+                            href={`/staff-management/${user._id}`}
+                            className="text-decoration-none fw-semibold"
+                          >
+                            {user.name || "-"}
+                          </Link>
+                        ) : (
+                          user.name || "-"
+                        )}
+                      </td>
                       <td>{user.phone || "-"}</td>
                       <td>{user.dob || "-"}</td>
                       <td>{formatAmount(user.staffEarned)}</td>
@@ -324,18 +425,33 @@ const ManageInvoice = () => {
                           >
                             View
                           </button>
-                          <button
+                          {/* <button
                             className="btn btn-sm btn-warning"
                             onClick={() => router.push(`/staff-management/${user._id}?mode=edit`)}
                           >
                             Edit
-                          </button>
+                          </button> */}
                           <button
+                            className="btn btn-sm btn-secondary"
+                            onClick={() => openAuditReport(user)}
+                          >
+                            Audit Report
+                          </button>
+                          {canConvertStaffToUser(user) ? (
+                            <button
+                              className="btn btn-sm btn-warning"
+                              onClick={() => openConvertModal(user)}
+                              disabled={isConvertingStaff}
+                            >
+                              Convert to User
+                            </button>
+                          ) : null}
+                          {/* <button
                             className="btn btn-sm btn-info"
                             onClick={() => openNotifyModal(user)}
                           >
                             Notify
-                          </button>
+                          </button>*/}
                           <button
                             className="btn btn-sm btn-danger"
                             onClick={() => handleDeleteStaff(user._id)}
@@ -413,6 +529,65 @@ const ManageInvoice = () => {
           </Button>
           <Button onClick={handleSendNotification} disabled={isSendingNotification}>
             {isSendingNotification ? "Sending..." : "Send Notification"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showConvertModal} onHide={closeConvertModal} centered>
+        <Modal.Header closeButton={!isConvertDryRunLoading && !isConvertingStaff}>
+          <Modal.Title>Convert Staff to User</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          {isConvertDryRunLoading ? (
+            <div className="py-4 text-center">
+              Preparing conversion preview...
+            </div>
+          ) : (
+            <>
+              <p className="text-muted mb-3">
+                After confirmation, this staff record will be deleted and a new
+                user account will be created.
+              </p>
+
+              <Table bordered responsive className="mb-0">
+                <tbody>
+                  <tr>
+                    <th>Staff Name</th>
+                    <td>{convertStaff?.name || "-"}</td>
+                  </tr>
+                  <tr>
+                    <th>Phone</th>
+                    <td>{convertStaff?.phone || "-"}</td>
+                  </tr>
+                  <tr>
+                    <th>Current Staff Member ID</th>
+                    <td>{convertStaff?.memberID || "-"}</td>
+                  </tr>
+                  <tr>
+                    <th>New User Member ID</th>
+                    <td>{convertPreview?.user?.memberID || "-"}</td>
+                  </tr>
+                </tbody>
+              </Table>
+            </>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={closeConvertModal}
+            disabled={isConvertDryRunLoading || isConvertingStaff}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="warning"
+            onClick={handleConvertStaffToUser}
+            disabled={isConvertDryRunLoading || isConvertingStaff || !convertPreview}
+          >
+            {isConvertingStaff ? "Converting..." : "Confirm Convert"}
           </Button>
         </Modal.Footer>
       </Modal>

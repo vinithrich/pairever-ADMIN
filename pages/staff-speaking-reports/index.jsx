@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
@@ -27,6 +28,13 @@ import Notiflix from "notiflix";
 
 const FETCH_LIMIT = 10000;
 const PAGE_LIMIT = 10;
+
+const DEFAULT_FILTERS = {
+  callType: "all",
+  staffMemberID: "",
+  fromDate: "",
+  toDate: "",
+};
 
 const formatAmount = (value) => ` ${(Number(value) || 0).toFixed(2)}`;
 
@@ -151,12 +159,8 @@ const StaffSpeakingReportsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filters, setFilters] = useState({
-    callType: "all",
-    staffMemberID: "",
-    fromDate: "",
-    toDate: "",
-  });
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [debouncedFilters, setDebouncedFilters] = useState(DEFAULT_FILTERS);
   const [currentPage, setCurrentPage] = useUrlPageState();
   const [sortConfig, setSortConfig] = useState({
     key: "totalDuration",
@@ -172,8 +176,30 @@ const StaffSpeakingReportsPage = () => {
     return () => clearTimeout(timeoutId);
   }, [searchInput, setCurrentPage]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const nextFilters = {
+        ...filters,
+        staffMemberID: filters.staffMemberID.trim(),
+      };
+
+      setDebouncedFilters((previousFilters) =>
+        previousFilters.callType === nextFilters.callType &&
+        previousFilters.staffMemberID === nextFilters.staffMemberID &&
+        previousFilters.fromDate === nextFilters.fromDate &&
+        previousFilters.toDate === nextFilters.toDate
+          ? previousFilters
+          : nextFilters
+      );
+      setCurrentPage(1);
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters, setCurrentPage]);
+
   const fetchReport = useCallback(async () => {
     setIsLoading(true);
+    const activeFilters = debouncedFilters;
 
     await dispatch(
       GetStaffListApi(
@@ -187,7 +213,7 @@ const StaffSpeakingReportsPage = () => {
 
         if (isSuccess) {
           const staffList = Array.isArray(resp?.data) ? resp.data : [];
-          const memberFilter = filters.staffMemberID.trim().toLowerCase();
+          const memberFilter = activeFilters.staffMemberID.toLowerCase();
           const filteredStaffList = memberFilter
             ? staffList.filter((staff) =>
                 String(staff?.memberID || "").toLowerCase().includes(memberFilter)
@@ -215,9 +241,9 @@ const StaffSpeakingReportsPage = () => {
                   : [];
                 const filteredCalls = callHistory
                   .filter((call) =>
-                    isCallInRange(call, filters.fromDate, filters.toDate)
+                    isCallInRange(call, activeFilters.fromDate, activeFilters.toDate)
                   )
-                  .filter((call) => matchesCallType(call, filters.callType))
+                  .filter((call) => matchesCallType(call, activeFilters.callType))
                   .map((call) => ({
                     ...call,
                     staffId,
@@ -235,7 +261,7 @@ const StaffSpeakingReportsPage = () => {
                       ) || calculateStaffEarning(call),
                   }));
                 const isFullStaffRange =
-                  filters.callType === "all" &&
+                  activeFilters.callType === "all" &&
                   filteredCalls.length === callHistory.length;
 
                 return {
@@ -284,7 +310,7 @@ const StaffSpeakingReportsPage = () => {
       }
       )
     );
-  }, [debouncedSearch, dispatch, filters]);
+  }, [debouncedFilters, debouncedSearch, dispatch]);
 
   useEffect(() => {
     fetchReport();
@@ -301,12 +327,8 @@ const StaffSpeakingReportsPage = () => {
   const clearFilters = () => {
     setSearchInput("");
     setDebouncedSearch("");
-    setFilters({
-      callType: "all",
-      staffMemberID: "",
-      fromDate: "",
-      toDate: "",
-    });
+    setFilters(DEFAULT_FILTERS);
+    setDebouncedFilters(DEFAULT_FILTERS);
     setCurrentPage(1);
   };
 
@@ -595,7 +617,16 @@ const StaffSpeakingReportsPage = () => {
                             }}
                           />
                           <div className="support-ticket-summary">
-                            <strong>{staff.staffName}</strong>
+                            {staff.staffId ? (
+                              <Link
+                                href={`/staff-management/${staff.staffId}`}
+                                className="text-decoration-none fw-semibold"
+                              >
+                                {staff.staffName}
+                              </Link>
+                            ) : (
+                              <strong>{staff.staffName}</strong>
+                            )}
                             <span className="text-muted small">
                               {staff.staffPhone}
                             </span>

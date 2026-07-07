@@ -1,4 +1,5 @@
 import { PageHeading } from "@/widgets";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -236,9 +237,23 @@ const StaffReportsPage = () => {
     );
   };
 
-  const renderPersonSummary = (person, fallbackLabel) => (
+  const renderPersonName = (person, fallbackLabel, type) => {
+    const id = person?._id || person?.id || "";
+    const name = person?.name || fallbackLabel;
+    const href = type === "staff" ? `/staff-management/${id}` : `/user-management/${id}`;
+
+    return id ? (
+      <Link href={href} className="text-decoration-none fw-semibold">
+        {name}
+      </Link>
+    ) : (
+      <strong>{name}</strong>
+    );
+  };
+
+  const renderPersonSummary = (person, fallbackLabel, type) => (
     <div className="support-ticket-summary">
-      <strong>{person?.name || fallbackLabel}</strong>
+      {renderPersonName(person, fallbackLabel, type)}
       <span className="text-muted small">
         {person?.email || person?.phone || "-"}
       </span>
@@ -370,8 +385,8 @@ const StaffReportsPage = () => {
                   ) : reports.length > 0 ? (
                     reports.map((report) => (
                       <tr key={report?._id}>
-                        <td>{renderPersonSummary(report?.user, "Unknown User")}</td>
-                        <td>{renderPersonSummary(report?.staff, "Unknown Staff")}</td>
+                        <td>{renderPersonSummary(report?.user, "Unknown User", "user")}</td>
+                        <td>{renderPersonSummary(report?.staff, "Unknown Staff", "staff")}</td>
                         <td>{report?.rating ?? "-"}</td>
                         <td className="support-ticket-description">
                           {report?.comment || "-"}
@@ -556,7 +571,8 @@ const StaffReportsPage = () => {
                 <div className="support-detail-block">
                   <h6>Reported User</h6>
                   <p>
-                    <strong>Name:</strong> {selectedReport?.user?.name || "-"}
+                    <strong>Name:</strong>{" "}
+                    {renderPersonName(selectedReport?.user, "-", "user")}
                   </p>
                   <p>
                     <strong>Email:</strong> {selectedReport?.user?.email || "-"}
@@ -578,7 +594,8 @@ const StaffReportsPage = () => {
                 <div className="support-detail-block">
                   <h6>Staff Information</h6>
                   <p>
-                    <strong>Name:</strong> {selectedReport?.staff?.name || "-"}
+                    <strong>Name:</strong>{" "}
+                    {renderPersonName(selectedReport?.staff, "-", "staff")}
                   </p>
                   <p>
                     <strong>Email:</strong> {selectedReport?.staff?.email || "-"}
