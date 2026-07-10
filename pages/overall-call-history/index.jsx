@@ -122,7 +122,7 @@ const renderPersonLink = (call, role) => {
     role === "staff" ? `/staff-management/${id}` : `/user-management/${id}`;
 
   return id ? (
-    <Link href={href} className="text-decoration-none fw-semibold">
+    <Link href={href} className="text-decoration-none fw-semibold" prefetch={false}>
       {name}
     </Link>
   ) : (
@@ -134,6 +134,7 @@ const getCallBadge = (type) => {
   if (type === "audio") return "primary";
   if (type === "video") return "danger";
   if (type === "chat") return "success";
+  if (type === "missed") return "warning";
   return "secondary";
 };
 
@@ -147,6 +148,7 @@ const OverallCallHistoryPage = () => {
     chat: 0,
     audio: 0,
     video: 0,
+    missed: 0,
   });
   const [dayWiseCounts, setDayWiseCounts] = useState([]);
   const [monthWiseCounts, setMonthWiseCounts] = useState([]);
@@ -256,6 +258,7 @@ const OverallCallHistoryPage = () => {
             chat: nextCounts?.chat ?? 0,
             audio: nextCounts?.audio ?? 0,
             video: nextCounts?.video ?? 0,
+            missed: nextCounts?.missed ?? 0,
           });
           setDayWiseCounts(
             getNestedValue(
@@ -287,7 +290,7 @@ const OverallCallHistoryPage = () => {
           });
         } else {
           setHistory([]);
-          setCounts({ total: 0, chat: 0, audio: 0, video: 0 });
+          setCounts({ total: 0, chat: 0, audio: 0, video: 0, missed: 0 });
           setDayWiseCounts([]);
           setMonthWiseCounts([]);
           setPagination({
@@ -364,6 +367,7 @@ const OverallCallHistoryPage = () => {
     { label: "Chat", value: counts.chat, subtext: "Chat sessions" },
     { label: "Audio", value: counts.audio, subtext: "Audio calls" },
     { label: "Video", value: counts.video, subtext: "Video calls" },
+    { label: "Missed", value: counts.missed, subtext: "Missed calls" },
   ];
 
   return (
@@ -408,7 +412,7 @@ const OverallCallHistoryPage = () => {
             <div>
               <Form.Label className="fw-bold">Call Type</Form.Label>
               <ButtonGroup className="d-flex">
-                {["all", "chat", "audio", "video"].map((type) => (
+                {["all", "chat", "audio", "video", "missed"].map((type) => (
                   <Button
                     key={type}
                     type="button"
@@ -650,14 +654,21 @@ const OverallCallHistoryPage = () => {
                   </tr>
                 ) : sortedHistory.length > 0 ? (
                   sortedHistory.map((call, index) => {
-                    const callType = call?.callType || call?.type || "-";
+                    const rawType = call?.callType || call?.type || "-";
+                    const isMissed = Boolean(call?.missedCall);
+                    const callType = rawType === "missed" ? "audio" : rawType;
 
                     return (
                       <tr key={call?._id || `${call?.createdAt}-${index}`}>
                         <td>{(currentPage - 1) * DEFAULT_LIMIT + index + 1}</td>
                         <td>{formatDateTime(call?.createdAt || call?.startedAt)}</td>
                         <td>
-                          <Badge bg={getCallBadge(callType)}>{callType}</Badge>
+                          <Badge bg={getCallBadge(callType)} className="text-capitalize me-1">
+                            {callType}
+                          </Badge>
+                          {isMissed && (
+                            <Badge bg="warning">Missed</Badge>
+                          )}
                         </td>
                         <td>
                           {formatDuration(call?.callDuration ?? call?.duration)}

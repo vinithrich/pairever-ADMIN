@@ -1,5 +1,5 @@
 // import node module libraries
-import { Fragment, useContext } from "react";
+import { Fragment, useContext, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMediaQuery } from "react-responsive";
@@ -25,6 +25,16 @@ import { useAuth } from "@/helper/Context/AuthContext";
 const NavbarVertical = (props) => {
   const location = useRouter();
   const { user } = useAuth();
+  const [appTitle, setAppTitle] = useState("Pair Ever");
+
+  useEffect(() => {
+    const selectedApp = localStorage.getItem("selectedAdminApp");
+    if (selectedApp === "flamez" || selectedApp === "1") {
+      setAppTitle("Flamez");
+    } else {
+      setAppTitle("Pair Ever");
+    }
+  }, []);
 
   const filterMenuByAccess = (items = []) =>
     items
@@ -46,7 +56,12 @@ const NavbarVertical = (props) => {
       })
       .filter(Boolean);
 
-  const allowedMenu = filterMenuByAccess(DashboardMenu);
+  const allowedMenu = filterMenuByAccess(DashboardMenu).map((item) => {
+    if (item.title === "Pair Ever") {
+      return { ...item, title: appTitle };
+    }
+    return item;
+  });
 
   const CustomToggle = ({ children, eventKey, icon }) => {
     const { activeEventKey } = useContext(AccordionContext);

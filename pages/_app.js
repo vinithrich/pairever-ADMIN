@@ -6,6 +6,7 @@ import { Provider } from "react-redux";
 import { Toaster } from "react-hot-toast";
 import store from "@/helper/Redux/Store";
 import DefaultDashboardLayout from "@/layouts/DefaultDashboardLayout";
+import GlobalLoader from "@/components/GlobalLoader";
 import { AuthProvider, useAuth } from "@/helper/Context/AuthContext";
 import { canAccessPath, getFirstAllowedPath } from "@/helper/accessControl";
 import "../styles/theme.scss";
@@ -33,8 +34,17 @@ const RouteGuard = ({ children }) => {
       return;
     }
 
+    if (isAuthenticated) {
+      const hasSelectedApp = typeof window !== "undefined" && localStorage.getItem("selectedAdminApp");
+      if (!hasSelectedApp && router.pathname !== "/select-app") {
+        router.replace("/select-app");
+        return;
+      }
+    }
+
     if (isAuthenticated && router.pathname === "/") {
-      const nextPath = getFirstAllowedPath(user);
+      const hasSelectedApp = typeof window !== "undefined" && localStorage.getItem("selectedAdminApp");
+      const nextPath = hasSelectedApp ? getFirstAllowedPath(user) : "/select-app";
 
       if (nextPath !== router.pathname) {
         router.replace(nextPath);
@@ -46,6 +56,7 @@ const RouteGuard = ({ children }) => {
     if (
       isAuthenticated &&
       !isPublicRoute &&
+      router.pathname !== "/select-app" &&
       !canAccessPath(user, router.pathname)
     ) {
       const nextPath = getFirstAllowedPath(user);
@@ -90,6 +101,7 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <Provider store={store}>
+      <GlobalLoader />
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="keywords" content={keywords} />
