@@ -31,6 +31,7 @@ const PopupsManagementPage = () => {
   const [imagePreview, setImagePreview] = useState("");
   const [targetRole, setTargetRole] = useState("all");
   const [enabled, setEnabled] = useState(true);
+  const [isWelcome, setIsWelcome] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchPopups = useCallback(async () => {
@@ -64,6 +65,7 @@ const PopupsManagementPage = () => {
     setImagePreview("");
     setTargetRole("all");
     setEnabled(true);
+    setIsWelcome(false);
     setShowModal(true);
   };
 
@@ -77,6 +79,7 @@ const PopupsManagementPage = () => {
     setImagePreview(popup.image || "");
     setTargetRole(popup.targetRole || "all");
     setEnabled(popup.enabled !== undefined ? popup.enabled : true);
+    setIsWelcome(popup.isWelcome !== undefined ? popup.isWelcome : false);
     setShowModal(true);
   };
 
@@ -107,6 +110,7 @@ const PopupsManagementPage = () => {
       formData.append("description", description.trim());
       formData.append("targetRole", targetRole);
       formData.append("enabled", enabled);
+      formData.append("isWelcome", isWelcome);
 
       if (imageFile) {
         formData.append("image", imageFile);
@@ -166,6 +170,7 @@ const PopupsManagementPage = () => {
         image: popup.image,
         targetRole: popup.targetRole,
         enabled: !popup.enabled,
+        isWelcome: popup.isWelcome,
       };
       const resp = await apiHelper.postRequest("popups", payload);
       if (resp?.status) {
@@ -207,6 +212,7 @@ const PopupsManagementPage = () => {
                     <th className="py-3">Title</th>
                     <th className="py-3">Description</th>
                     <th className="py-3">Target Role</th>
+                    <th className="py-3">Welcome Popup</th>
                     <th className="py-3">Status</th>
                     <th className="py-3 text-end px-4">Actions</th>
                   </tr>
@@ -214,13 +220,13 @@ const PopupsManagementPage = () => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-5 text-muted">
+                      <td colSpan="7" className="text-center py-5 text-muted">
                         Loading popups...
                       </td>
                     </tr>
                   ) : popups.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-5 text-muted">
+                      <td colSpan="7" className="text-center py-5 text-muted">
                         No popups configured. Click "Create Popup" to add one.
                       </td>
                     </tr>
@@ -268,6 +274,11 @@ const PopupsManagementPage = () => {
                             className="text-capitalize"
                           >
                             {popup.targetRole}
+                          </Badge>
+                        </td>
+                        <td>
+                          <Badge bg={popup.isWelcome ? "success" : "secondary"}>
+                            {popup.isWelcome ? "Yes" : "No"}
                           </Badge>
                         </td>
                         <td>
@@ -374,6 +385,16 @@ const PopupsManagementPage = () => {
                 label="Enabled (Show to target role)"
                 checked={enabled}
                 onChange={(e) => setEnabled(e.target.checked)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                id="popup-welcome-checkbox"
+                label="Is Welcome Popup (New users only)"
+                checked={isWelcome}
+                onChange={(e) => setIsWelcome(e.target.checked)}
               />
             </Form.Group>
           </Modal.Body>

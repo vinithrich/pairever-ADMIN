@@ -8,6 +8,7 @@ import apiHelper from "@/helper/apiHelper";
 const SystemSettingsPage = () => {
   const router = useRouter();
   const [maxMissedCalls, setMaxMissedCalls] = useState(3);
+  const [welcomeBonus, setWelcomeBonus] = useState(20);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -17,6 +18,7 @@ const SystemSettingsPage = () => {
       const resp = await apiHelper.getRequest("settings");
       if (resp?.status) {
         setMaxMissedCalls(resp.data?.maxMissedCalls ?? 3);
+        setWelcomeBonus(resp.data?.welcomeBonus ?? 20);
       } else {
         Notiflix.Notify.failure(resp?.message || "Failed to fetch settings");
       }
@@ -41,11 +43,21 @@ const SystemSettingsPage = () => {
       return;
     }
 
+    const bonusVal = Number(welcomeBonus);
+    if (!Number.isInteger(bonusVal) || bonusVal < 0) {
+      Notiflix.Notify.failure("Welcome Bonus Coins must be a non-negative integer");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const resp = await apiHelper.postRequest("settings", { maxMissedCalls: numericVal });
+      const resp = await apiHelper.postRequest("settings", {
+        maxMissedCalls: numericVal,
+        welcomeBonus: bonusVal
+      });
       if (resp?.status) {
         setMaxMissedCalls(resp.data?.maxMissedCalls ?? 3);
+        setWelcomeBonus(resp.data?.welcomeBonus ?? 20);
         Notiflix.Notify.success("Settings updated successfully");
       } else {
         Notiflix.Notify.failure(resp?.message || "Failed to update settings");
@@ -74,9 +86,9 @@ const SystemSettingsPage = () => {
           <Card className="shadow-sm border-0 rounded-3">
             <Card.Body className="p-4">
               <div className="mb-4">
-                <h4 className="mb-1 text-dark fw-bold">Call Configuration Settings</h4>
+                <h4 className="mb-1 text-dark fw-bold">Platform Configuration Settings</h4>
                 <p className="text-muted mb-0">
-                  Configure dynamic values used throughout the platform, including the threshold for automatic offline status.
+                  Configure dynamic values used throughout the platform, including the threshold for automatic offline status and the sign-up welcome bonus.
                 </p>
               </div>
 
@@ -97,6 +109,25 @@ const SystemSettingsPage = () => {
                   />
                   <Form.Text className="text-muted">
                     If a staff member is online but misses this many consecutive calls, they will be automatically set to offline on both Redis presence and MongoDB, and receive an auto-offline push notification.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="fw-semibold text-secondary">
+                    Welcome Bonus Coins
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="Enter welcome bonus coins amount (e.g. 20)"
+                    value={welcomeBonus}
+                    onChange={(event) => setWelcomeBonus(event.target.value)}
+                    disabled={isLoading || isSubmitting}
+                    className="form-control-lg border-2"
+                  />
+                  <Form.Text className="text-muted">
+                    The number of free coins credited to a new user's balance upon initial signup.
                   </Form.Text>
                 </Form.Group>
 

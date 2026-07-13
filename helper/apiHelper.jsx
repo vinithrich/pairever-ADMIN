@@ -43,7 +43,10 @@ const endRequest = () => {
 };
 
 export const authUrl = (() => {
+  // return "http://103.181.21.210:9500/api/v1/admin/auth";
   return "http://localhost:7000/api/v1/admin/auth";
+
+
 
   switch (process.env.NODE_ENV) {
     case "development":
