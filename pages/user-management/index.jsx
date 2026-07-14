@@ -39,6 +39,7 @@ const ManageInvoice = () => {
   const [fromDateFilter, setFromDateFilter] = useState("");
   const [toDateFilter, setToDateFilter] = useState("");
   const [loginFilter, setLoginFilter] = useState("");
+  const [appFilter, setAppFilter] = useState("");
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [pageDataCount, setPageDataCount] = useState(0);
@@ -58,6 +59,11 @@ const ManageInvoice = () => {
 
   const handleGoBack = () => router.back();
 
+  useEffect(() => {
+    if (router.isReady && router.query.appName) {
+      setAppFilter(router.query.appName);
+    }
+  }, [router.isReady, router.query.appName]);
 
   const getUserDetails = useCallback(async () => {
     const queryParams = {
@@ -88,6 +94,10 @@ const ManageInvoice = () => {
       queryParams.verified = loginFilter;
     }
 
+    if (appFilter) {
+      queryParams.appName = appFilter;
+    }
+
     await dispatch(
       GetUserListApi(queryParams, (resp) => {
         if (resp?.status) {
@@ -113,6 +123,7 @@ const ManageInvoice = () => {
     fromDateFilter,
     leadsPerPage,
     loginFilter,
+    appFilter,
     debouncedSearchQuery,
     toDateFilter,
   ]);
@@ -146,6 +157,7 @@ const ManageInvoice = () => {
     setFromDateFilter("");
     setToDateFilter("");
     setLoginFilter("");
+    setAppFilter("");
     setCurrentPage(1);
   };
 
@@ -410,6 +422,7 @@ const ManageInvoice = () => {
                   <th><SortableHeader label="Coins" sortKey="coinBalance" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Role" sortKey="role" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={handleSort} /></th>
+                  <th><SortableHeader label="Platform" sortKey="appName" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Created At" sortKey="createdAt" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th>Action</th>
                 </tr>
@@ -446,6 +459,11 @@ const ManageInvoice = () => {
                         ) : (
                           <span className="badge bg-secondary">Offline</span>
                         )}
+                      </td>
+                      <td>
+                        <span className={`badge ${user.appName && (user.appName.toLowerCase() === 'flamez' || user.appName === '1') ? 'bg-danger' : 'bg-primary'}`}>
+                          {user.appName ? ((user.appName.toLowerCase() === 'flamez' || user.appName === '1') ? 'Flamez' : (user.appName === '0' ? 'PairEver' : user.appName)) : 'PairEver'}
+                        </span>
                       </td>
                       <td>
                         {user.createdAt
@@ -485,7 +503,7 @@ const ManageInvoice = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="11" className="text-center">
+                    <td colSpan="12" className="text-center">
                       No Users Found
                     </td>
                   </tr>

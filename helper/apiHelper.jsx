@@ -1,18 +1,64 @@
 let cancelController;
 
+// Max time any request may stay in flight before it's aborted. Prevents a slow/hung
+// backend from leaving the global loader spinning forever.
+const REQUEST_TIMEOUT_MS = 45000;
+
+// ---- Global request-loading signal ----------------------------------------
+// Every API call funnels through makeRequest below, so we track how many are in
+// flight and notify subscribers. A single <GlobalLoader/> (mounted in _app.js)
+// shows an overlay whenever the count > 0 — so a slow response shows a loader
+// everywhere instead of each page flashing its "no data found" empty state.
+let inflightRequests = 0;
+const loadingListeners = new Set();
+
+const emitLoading = () => {
+  loadingListeners.forEach((listener) => {
+    try {
+      listener(inflightRequests);
+    } catch (e) {
+      // never let a bad listener break a request
+    }
+  });
+};
+
+// Subscribe to in-flight request count. Calls back immediately with the current
+// value and returns an unsubscribe function.
+export const subscribeRequestLoading = (listener) => {
+  loadingListeners.add(listener);
+  listener(inflightRequests);
+  return () => loadingListeners.delete(listener);
+};
+
+export const isRequestLoading = () => inflightRequests > 0;
+
+const beginRequest = () => {
+  inflightRequests += 1;
+  emitLoading();
+};
+
+const endRequest = () => {
+  inflightRequests = Math.max(0, inflightRequests - 1);
+  emitLoading();
+};
+
 export const authUrl = (() => {
-            return "http://103.181.21.210:9500/api/v1/admin/auth";
+  // return "http://103.181.21.210:9500/api/v1/admin/auth";
+  // return "http://localhost:7000/api/v1/admin/auth";
+  return "https://api.pair-ever.com/api/v1/admin/auth"
+
+
 
   switch (process.env.NODE_ENV) {
     case "development":
     case "devel":
       // return "https://api.pair-ever.com/api/v1/admin/auth";
-            return "http://102.168.1.46:7000/api/v1/admin/auth";
+      return "http://localhost:7000/api/v1/admin/auth";
 
-  
+
     default:
       // return "https://api.pair-ever.com/api/v1/admin/auth";
-            return "http://localhost:7000/api/v1/admin/auth";
+      return "http://localhost:7000/api/v1/admin/auth";
   }
 })();
 
@@ -97,21 +143,38 @@ const makeRequest = async (
     ...getAuthHeaders(),
   };
 
+  if (typeof window !== "undefined") {
+    let selectedApp = localStorage.getItem("selectedAdminApp") || "0";
+    if (selectedApp === "pairever") selectedApp = "0";
+    else if (selectedApp === "flamez") selectedApp = "1";
+    headers["X-App-Name"] = selectedApp;
+  }
+
   if (!isFormData) {
     headers["Content-Type"] = "application/json";
   }
+
+  // Hard timeout so a slow/hung backend can never leave a request in flight forever
+  // (which would keep the global loader spinning and the page stuck on "loading").
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   const options = {
     method: method,
     headers: headers,
     body: data ? (isFormData ? data : JSON.stringify(data)) : undefined,
+    signal: controller.signal,
   };
 
+  beginRequest();
   try {
     const response = await fetch(endpoint, options);
     return await handleResponse(response);
   } catch (error) {
     await handleErrors(error);
+  } finally {
+    clearTimeout(timeoutId);
+    endRequest();
   }
 };
 

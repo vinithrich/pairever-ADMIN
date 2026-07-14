@@ -60,7 +60,7 @@ const SignIn = () => {
             email: data?.email,
             ...resp,
           });
-          router.push(getFirstAllowedPath({ raw: resp }));
+          router.push("/select-app");
           setLoading(false);
         } else {
           errorToast(resp?.message || "Login failed");

@@ -4,8 +4,7 @@ import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
 import {
-  GetStaffListApi,
-  GetSingleStaffApi,
+  GetOverallCallHistoryApi,
 } from "@/helper/Redux/ReduxThunk/Homepage";
 import { sortRows } from "@/helper/tableSort";
 import { useRouter } from "next/router";
@@ -197,91 +196,70 @@ const StaffSpeakingReportsPage = () => {
     return () => clearTimeout(timeoutId);
   }, [filters, setCurrentPage]);
 
+  const timezone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata",
+    []
+  );
+
   const fetchReport = useCallback(async () => {
     setIsLoading(true);
     const activeFilters = debouncedFilters;
 
+    const params = {
+      page: 1,
+      limit: 100000,
+      timezone,
+    };
+
+    if (activeFilters.fromDate) {
+      params.fromDate = activeFilters.fromDate;
+      params.startDate = activeFilters.fromDate;
+    }
+    if (activeFilters.toDate) {
+      params.toDate = activeFilters.toDate;
+      params.endDate = activeFilters.toDate;
+    }
+    if (activeFilters.callType && activeFilters.callType !== "all") {
+      params.callType = activeFilters.callType;
+    }
+
     await dispatch(
-      GetStaffListApi(
-        {
-          page: 1,
-          limit: FETCH_LIMIT,
-          search: debouncedSearch,
-        },
-        async (resp) => {
+      GetOverallCallHistoryApi(params, (resp) => {
         const isSuccess = Boolean(resp?.success ?? resp?.status);
 
         if (isSuccess) {
-          const staffList = Array.isArray(resp?.data) ? resp.data : [];
+          const list = Array.isArray(resp?.data) ? resp.data : [];
+
           const memberFilter = activeFilters.staffMemberID.toLowerCase();
-          const filteredStaffList = memberFilter
-            ? staffList.filter((staff) =>
-                String(staff?.memberID || "").toLowerCase().includes(memberFilter)
+          const filteredList = memberFilter
+            ? list.filter((call) =>
+                String(call?.staffMemberID || "").toLowerCase().includes(memberFilter)
               )
-            : staffList;
+            : list;
 
-          const detailResults = await Promise.all(
-            filteredStaffList.map(async (staff) => {
-              const staffId = staff?._id;
+          const searchFilter = debouncedSearch.toLowerCase();
+          const searchedList = searchFilter
+            ? filteredList.filter((call) =>
+                String(call?.staffName || "").toLowerCase().includes(searchFilter) ||
+                String(call?.staffPhone || "").toLowerCase().includes(searchFilter) ||
+                String(call?.staffMemberID || "").toLowerCase().includes(searchFilter)
+              )
+            : filteredList;
 
-              if (!staffId) {
-                return null;
-              }
+          // Inject properties needed for the speaking row summary details
+          const nextHistory = searchedList.map((call) => ({
+            ...call,
+            staffId: call?.staffId || "",
+            staffName: call?.staffName || "Unknown",
+            staffPhone: call?.staffPhone || "-",
+            staffEmail: call?.staffEmail || "-",
+            staffImage: call?.staffImage || "",
+            staffMemberID: call?.staffMemberID || "-",
+            staffEarned: Number(call?.staffEarned ?? call?.staffEarnedAmount) || calculateStaffEarning(call),
+          }));
 
-                const detailResp = await dispatch(
-                  GetSingleStaffApi(staffId, () => {})
-                );
+          setHistory(nextHistory);
 
-                if (!detailResp?.status) {
-                  return null;
-                }
-
-                const callHistory = Array.isArray(detailResp?.callHistory)
-                  ? detailResp.callHistory
-                  : [];
-                const filteredCalls = callHistory
-                  .filter((call) =>
-                    isCallInRange(call, activeFilters.fromDate, activeFilters.toDate)
-                  )
-                  .filter((call) => matchesCallType(call, activeFilters.callType))
-                  .map((call) => ({
-                    ...call,
-                    staffId,
-                    staffName: detailResp?.data?.name || staff?.name || "Unknown",
-                    staffPhone: detailResp?.data?.phone || staff?.phone || "-",
-                    staffEmail: detailResp?.data?.email || staff?.email || "-",
-                    staffImage: detailResp?.data?.image || staff?.image || "",
-                    staffMemberID:
-                      detailResp?.data?.memberID || staff?.memberID || "-",
-                    staffEarned:
-                      Number(
-                        call?.staffEarned ??
-                          call?.calculatedEarned ??
-                          call?.staffEarnedAmount
-                      ) || calculateStaffEarning(call),
-                  }));
-                const isFullStaffRange =
-                  activeFilters.callType === "all" &&
-                  filteredCalls.length === callHistory.length;
-
-                return {
-                  staffId,
-                  calls: isFullStaffRange
-                    ? filteredCalls.map((call, index) => ({
-                        ...call,
-                        staffEarned:
-                          index === 0
-                            ? Number(detailResp?.data?.staffEarned) || 0
-                            : 0,
-                      }))
-                    : filteredCalls,
-                };
-              })
-            );
-
-          const nextHistory = detailResults.flatMap((detail) =>
-            Array.isArray(detail?.calls) ? detail.calls : []
-          );
           const nextCounts = nextHistory.reduce(
             (acc, call) => {
               const callType = String(call?.callType || "").toLowerCase();
@@ -296,7 +274,6 @@ const StaffSpeakingReportsPage = () => {
             { total: 0, chat: 0, audio: 0, video: 0 }
           );
 
-          setHistory(nextHistory);
           setCounts(nextCounts);
         } else {
           setHistory([]);
@@ -307,10 +284,9 @@ const StaffSpeakingReportsPage = () => {
         }
 
         setIsLoading(false);
-      }
-      )
+      })
     );
-  }, [debouncedFilters, debouncedSearch, dispatch]);
+  }, [debouncedFilters, debouncedSearch, dispatch, timezone]);
 
   useEffect(() => {
     fetchReport();

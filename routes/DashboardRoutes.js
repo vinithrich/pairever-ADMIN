@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { v4 as uuid } from "uuid";
-import logo from "../public/kudavasal.svg";
+// import logo from "../public/kudavasal.svg";
 import { FaCoins, FaSackDollar, FaUserGroup, FaUsers } from "react-icons/fa6";
 import { BsCoin } from "react-icons/bs";
 import { GrTransaction } from "react-icons/gr";
@@ -186,6 +186,26 @@ export const DashboardMenu = [
     icon: "bar-chart-2",
     link: "/staff-speaking-reports",
     accessKey: "reports",
+  },
+  {
+    id: uuid(),
+    title: "System Settings",
+    icon: "settings",
+    link: "/system-settings",
+    accessKey: "settingsManagement",
+  },
+  {
+    id: uuid(),
+    title: "Popups Management",
+    icon: "layers",
+    link: "/popups",
+    accessKey: "settingsManagement",
+  },
+  {
+    id: uuid(),
+    title: "Switch App",
+    icon: "refresh-cw",
+    link: "/select-app",
   },
 
   // {

@@ -12,7 +12,7 @@ import QuickMenu from '@/layouts/QuickMenu';
 
 const NavbarTop = (props) => {
 	return (
-		<Navbar expanded="lg" className="navbar-classic navbar navbar-expand-lg">
+		<Navbar expanded="lg" className="navbar-classic navbar navbar-expand-lg" style={{ zIndex: 1000 }}>
 			<div className='d-flex justify-content-between w-100'>
 				<div className="d-flex align-items-center">
 					<Link

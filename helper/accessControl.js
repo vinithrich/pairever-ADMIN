@@ -20,6 +20,8 @@ export const ROUTE_ACCESS = [
   { path: "/user-reports", accessKey: "reports" },
   { path: "/overall-call-history", accessKey: "callHistory" },
   { path: "/staff-speaking-reports", accessKey: "reports" },
+  { path: "/system-settings", accessKey: "settingsManagement" },
+  { path: "/popups", accessKey: "settingsManagement" },
 ];
 
 const isObject = (value) => value && typeof value === "object";

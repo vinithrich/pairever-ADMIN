@@ -112,6 +112,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem("kudavasalToken");
       localStorage.removeItem("email");
+      localStorage.removeItem("selectedAdminApp");
     }
 
     router.push("/");

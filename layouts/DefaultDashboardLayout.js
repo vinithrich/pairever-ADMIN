@@ -20,7 +20,7 @@ const DefaultDashboardLayout = (props) => {
 				/>
 			</div>
 			<div id="page-content">
-				<div className="header">
+				<div className="header" style={{ zIndex: 1000, position: 'relative' }}>
 					<NavbarTop
 						data={{
 							showMenu: showMenu,
