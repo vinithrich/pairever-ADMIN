@@ -68,6 +68,22 @@ export const DashboardMenu = [
   },
   {
     id: uuid(),
+    title: "Shift Reward Rules",
+    icon: "clock",
+    link: "/shift-reward-management",
+    accessKey: "staffManagement",
+  },
+  {
+    id: uuid(),
+    title: "Task Campaigns & Rewards",
+    icon: "check-square",
+    link: "/task-campaign-management",
+    accessKey: "staffManagement",
+  },
+
+
+  {
+    id: uuid(),
     title: "Sub-Admin Management",
     icon: "user-check",
     link: "/sub-admin-management",

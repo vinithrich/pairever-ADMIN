@@ -417,6 +417,39 @@ export const DeleteUserApi =
       }
     };
 
+export const ToggleUserBlockApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await fetch(`${apiHelper.authUrl}/toggleBlockUser`, {
+          method: "POST",
+          headers: {
+            ...apiHelper.getAuthHeaders(),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+
+        const responseData = await response.json().catch(() => null);
+        const fallbackMessage = response.ok ? "Operation successful" : "Failed to update user block status";
+
+        const result = responseData || {
+          status: response.ok,
+          message: fallbackMessage,
+        };
+
+        callback(result);
+        return result;
+      } catch (e) {
+        const result = {
+          status: false,
+          message: e?.message || "Request failed",
+        };
+        callback(result);
+        return null;
+      }
+    };
+
 export const UpdateUserBalanceApi =
   (data, callback = () => { }) =>
     async () => {

@@ -23,6 +23,7 @@ import {
   DeleteUserApi,
   GetUserListApi,
   SendUserPushApi,
+  ToggleUserBlockApi,
 } from "@/helper/Redux/ReduxThunk/Homepage";
 
 const formatCoins = (value) => Math.round(Number(value) || 0).toLocaleString("en-IN");
@@ -212,6 +213,43 @@ const ManageInvoice = () => {
       }
     },
     [currentPage, deletingUserId, dispatch, getUserDetails, setCurrentPage, userList.length]
+  );
+
+  const [blockingUserId, setBlockingUserId] = useState("");
+
+  const handleToggleBlockUser = useCallback(
+    (user) => {
+      const isCurrentlyBlocked = Boolean(user?.isBlocked);
+      const actionText = isCurrentlyBlocked ? "unblock" : "block";
+
+      Notiflix.Confirm.show(
+        `Confirm ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
+        `Are you sure you want to ${actionText} user "${user.name || user.phone || user._id}"?`,
+        "Yes",
+        "No",
+        async () => {
+          setBlockingUserId(user._id);
+          try {
+            await dispatch(
+              ToggleUserBlockApi(
+                { userId: user._id, isBlocked: !isCurrentlyBlocked },
+                (resp) => {
+                  if (resp?.status) {
+                    Notiflix.Notify.success(resp.message || `User ${actionText}ed successfully`);
+                    getUserDetails();
+                  } else {
+                    Notiflix.Notify.failure(resp?.message || `Failed to ${actionText} user`);
+                  }
+                }
+              )
+            );
+          } finally {
+            setBlockingUserId("");
+          }
+        }
+      );
+    },
+    [dispatch, getUserDetails]
   );
 
   const openAuditReport = (user) => {
@@ -454,11 +492,15 @@ const ManageInvoice = () => {
                       <td>{formatCoins(user.coinBalance)}</td>
                       <td>{user.role || "-"}</td>
                       <td>
-                        {user.isLogin ? (
-                          <span className="badge bg-success">Online</span>
-                        ) : (
-                          <span className="badge bg-secondary">Offline</span>
-                        )}
+                        <div className="d-flex flex-column gap-1 align-items-start">
+                          {user.isBlocked ? (
+                            <span className="badge bg-danger">Blocked</span>
+                          ) : user.isLogin ? (
+                            <span className="badge bg-success">Online</span>
+                          ) : (
+                            <span className="badge bg-secondary">Offline</span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <span className={`badge ${user.appName && (user.appName.toLowerCase() === 'flamez' || user.appName === '1') ? 'bg-danger' : 'bg-primary'}`}>
@@ -489,6 +531,17 @@ const ManageInvoice = () => {
                             onClick={() => openNotifyModal(user)}
                           >
                             Notify
+                          </button>
+                          <button
+                            className={`btn btn-sm ${user.isBlocked ? "btn-success" : "btn-dark"}`}
+                            onClick={() => handleToggleBlockUser(user)}
+                            disabled={blockingUserId === user._id}
+                          >
+                            {blockingUserId === user._id
+                              ? "Processing..."
+                              : user.isBlocked
+                              ? "Unblock"
+                              : "Block"}
                           </button>
                           <button
                             className="btn btn-sm btn-danger"
