@@ -66,6 +66,9 @@ const StaffDetail = () => {
     imageFile: null,
     rating: 0,
     coinsPerMinute: 0,
+    audioCoinsPerMinute: 0,
+    videoCoinsPerMinute: 0,
+    chatCoinsPerMinute: 0,
   });
   const [notificationForm, setNotificationForm] = useState({
     title: "Reminder",
@@ -90,8 +93,11 @@ const StaffDetail = () => {
     imageFile: null,
     rating: staffData?.rating ?? 0,
     coinsPerMinute: staffData?.coinsPerMinute ?? 0,
+    audioCoinsPerMinute: staffData?.audioCoinsPerMinute ?? staffData?.coinsPerMinute ?? 0,
+    videoCoinsPerMinute: staffData?.videoCoinsPerMinute ?? staffData?.coinsPerMinute ?? 0,
+    chatCoinsPerMinute: staffData?.chatCoinsPerMinute ?? staffData?.coinsPerMinute ?? 0,
   });
-// ✅ NEW: earning calculation function
+  // ✅ NEW: earning calculation function
   const calculateStaffEarning = (call) => {
     const duration = Number(call.callDuration) || 0;
     const minimumDuration = duration > 0 ? Math.max(duration, 60) : 0;
@@ -150,7 +156,7 @@ const StaffDetail = () => {
       GetSingleStaffApi(userId, (resp) => {
         if (resp?.status) {
           setStaff(resp.data);
-             // ✅ MODIFY: inject calculated earning into callHistory
+          // ✅ MODIFY: inject calculated earning into callHistory
           const updatedHistory = (resp.callHistory || []).map((call) => ({
             ...call,
             calculatedEarned: calculateStaffEarning(call),
@@ -284,6 +290,9 @@ const StaffDetail = () => {
     payload.append("formStatus", formData.formStatus);
     payload.append("rating", formData.rating);
     payload.append("coinsPerMinute", formData.coinsPerMinute);
+    payload.append("audioCoinsPerMinute", formData.audioCoinsPerMinute);
+    payload.append("videoCoinsPerMinute", formData.videoCoinsPerMinute);
+    payload.append("chatCoinsPerMinute", formData.chatCoinsPerMinute);
 
     if (formData.imageFile) {
       payload.append("image", formData.imageFile);
@@ -589,19 +598,19 @@ const StaffDetail = () => {
     staff.isApproved === "0"
       ? "Pending"
       : staff.isApproved === "1"
-      ? "Approved"
-      : staff.isApproved === "2"
-      ? "Rejected"
-      : "-";
+        ? "Approved"
+        : staff.isApproved === "2"
+          ? "Rejected"
+          : "-";
 
   const approvalBadge =
     staff.isApproved === "0"
       ? "warning"
       : staff.isApproved === "1"
-      ? "success"
-      : staff.isApproved === "2"
-      ? "danger"
-      : "secondary";
+        ? "success"
+        : staff.isApproved === "2"
+          ? "danger"
+          : "secondary";
 
   return (
     <Container fluid className="p-6">
@@ -703,10 +712,12 @@ const StaffDetail = () => {
               <p><b>Phone:</b> {staff.phone}</p>
               <p><b>Date of Birth:</b> {staff.dob}</p>
               {/* <p><b>Date of Birth:</b> {staff.dob}</p> */}
-                <p><b>City:</b> {staff.city}</p>
-                <p><b>Language:</b> {staff.Language}</p>
-                <p><b>Rating:</b> {staff.rating ?? 0}</p>
-                <p><b>Coins per Minute:</b> {staff.coinsPerMinute ?? 0}</p>
+              <p><b>City:</b> {staff.city}</p>
+              <p><b>Language:</b> {staff.Language}</p>
+              <p><b>Rating:</b> {staff.rating ?? 0}</p>
+              <p><b>Audio Call amount per Minute:</b> {staff.audioCoinsPerMinute ?? staff.coinsPerMinute ?? 0}</p>
+              <p><b>Video Call amount per Minute:</b> {staff.videoCoinsPerMinute ?? staff.coinsPerMinute ?? 0}</p>
+              <p><b>Chat amount per Minute:</b> {staff.chatCoinsPerMinute ?? staff.coinsPerMinute ?? 0}</p>
             </Card.Body>
           </Card>
         </Col>
@@ -877,10 +888,10 @@ const StaffDetail = () => {
                       withdraw.statusCode === "0"
                         ? "warning"
                         : withdraw.statusCode === "1"
-                        ? "success"
-                        : withdraw.statusCode === "2"
-                        ? "danger"
-                        : "secondary";
+                          ? "success"
+                          : withdraw.statusCode === "2"
+                            ? "danger"
+                            : "secondary";
 
                     return (
                       <tr key={withdraw.id || `${withdraw.createdAt}-${index}`}>
@@ -1076,11 +1087,31 @@ const StaffDetail = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Coins per Minute</Form.Label>
+              <Form.Label>Audio Call per Minute</Form.Label>
               <Form.Control
                 type="number"
-                name="coinsPerMinute"
-                value={formData.coinsPerMinute}
+                name="audioCoinsPerMinute"
+                value={formData.audioCoinsPerMinute}
+                onChange={handleInputChange}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Video Call per Minute</Form.Label>
+              <Form.Control
+                type="number"
+                name="videoCoinsPerMinute"
+                value={formData.videoCoinsPerMinute}
+                onChange={handleInputChange}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Chat per Minute</Form.Label>
+              <Form.Control
+                type="number"
+                name="chatCoinsPerMinute"
+                value={formData.chatCoinsPerMinute}
                 onChange={handleInputChange}
               />
             </Form.Group>
