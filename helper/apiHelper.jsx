@@ -44,10 +44,8 @@ const endRequest = () => {
 
 export const authUrl = (() => {
   // return "http://103.181.21.210:9500/api/v1/admin/auth";
-  // return "http://localhost:5000/api/v1/admin/auth";
-  return "http://192.168.1.77:5000/api/v1/admin/auth";
-
-  // return "https://api.pair-ever.com/api/v1/admin/auth"
+  // return "http://192.168.1.50:5000/api/v1/admin/auth";
+  return "https://api.pair-ever.com/api/v1/admin/auth"
 
 
 

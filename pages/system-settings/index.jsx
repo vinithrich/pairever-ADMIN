@@ -9,6 +9,7 @@ const SystemSettingsPage = () => {
   const router = useRouter();
   const [maxMissedCalls, setMaxMissedCalls] = useState(3);
   const [welcomeBonus, setWelcomeBonus] = useState(20);
+  const [waveCooldownMinutes, setWaveCooldownMinutes] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -19,6 +20,7 @@ const SystemSettingsPage = () => {
       if (resp?.status) {
         setMaxMissedCalls(resp.data?.maxMissedCalls ?? 3);
         setWelcomeBonus(resp.data?.welcomeBonus ?? 20);
+        setWaveCooldownMinutes(resp.data?.waveCooldownMinutes ?? 10);
       } else {
         Notiflix.Notify.failure(resp?.message || "Failed to fetch settings");
       }
@@ -49,15 +51,23 @@ const SystemSettingsPage = () => {
       return;
     }
 
+    const waveVal = Number(waveCooldownMinutes);
+    if (!Number.isInteger(waveVal) || waveVal < 1) {
+      Notiflix.Notify.failure("Wave Cooldown must be a positive integer (minutes)");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const resp = await apiHelper.postRequest("settings", {
         maxMissedCalls: numericVal,
-        welcomeBonus: bonusVal
+        welcomeBonus: bonusVal,
+        waveCooldownMinutes: waveVal
       });
       if (resp?.status) {
         setMaxMissedCalls(resp.data?.maxMissedCalls ?? 3);
         setWelcomeBonus(resp.data?.welcomeBonus ?? 20);
+        setWaveCooldownMinutes(resp.data?.waveCooldownMinutes ?? 10);
         Notiflix.Notify.success("Settings updated successfully");
       } else {
         Notiflix.Notify.failure(resp?.message || "Failed to update settings");
@@ -128,6 +138,25 @@ const SystemSettingsPage = () => {
                   />
                   <Form.Text className="text-muted">
                     The number of free coins credited to a new user's balance upon initial signup.
+                  </Form.Text>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                  <Form.Label className="fw-semibold text-secondary">
+                    Wave Cooldown (minutes)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="Enter wave cooldown in minutes (e.g. 10)"
+                    value={waveCooldownMinutes}
+                    onChange={(event) => setWaveCooldownMinutes(event.target.value)}
+                    disabled={isLoading || isSubmitting}
+                    className="form-control-lg border-2"
+                  />
+                  <Form.Text className="text-muted">
+                    How often a staff member can "wave" the same online user. A staff can wave a given user only once within this window.
                   </Form.Text>
                 </Form.Group>
 
