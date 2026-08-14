@@ -12,7 +12,13 @@ const SelectAppPage = () => {
 
   const handleSelectApp = (appName) => {
     localStorage.setItem("selectedAdminApp", appName);
-    Notiflix.Notify.success(`Accessing ${appName === "flamez" || appName === "1" ? "Flamez" : "PairEver"} Panel`);
+    const label =
+      appName === "flamez" || appName === "1"
+        ? "Flamez"
+        : appName === "bonding" || appName === "2"
+        ? "Bonding"
+        : "PairEver";
+    Notiflix.Notify.success(`Accessing ${label} Panel`);
     
     // Redirect to the first permitted dashboard route
     const nextPath = getFirstAllowedPath(user);
@@ -20,9 +26,9 @@ const SelectAppPage = () => {
   };
 
   return (
-    <Container className="d-flex align-items-center justify-content-center min-vh-100">
+    <Container className="d-flex align-items-center justify-content-center min-vh-100 py-5">
       <Row className="justify-content-center w-100">
-        <Col md={10} lg={8} xl={7}>
+        <Col md={11} lg={10} xl={9}>
           <div className="text-center mb-5">
             <h1 className="text-white fw-bold mb-2">Select Application Platform</h1>
             <p className="text-white-50">
@@ -30,8 +36,8 @@ const SelectAppPage = () => {
             </p>
           </div>
 
-          <Row className="g-4">
-            <Col sm={6}>
+          <Row className="g-4 justify-content-center">
+            <Col sm={6} md={4}>
               <Card
                 className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
                 onClick={() => handleSelectApp("0")}
@@ -73,7 +79,7 @@ const SelectAppPage = () => {
               </Card>
             </Col>
 
-            <Col sm={6}>
+            <Col sm={6} md={4}>
               <Card
                 className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
                 onClick={() => handleSelectApp("1")}
@@ -110,6 +116,48 @@ const SelectAppPage = () => {
                   <h3 className="text-white fw-bold mb-2">Flamez</h3>
                   <p className="text-white-50 mb-0 small">
                     Manage profiles, call logs, analytics, and settings for the Flamez application.
+                  </p>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col sm={6} md={4}>
+              <Card
+                className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
+                onClick={() => handleSelectApp("2")}
+                style={{
+                  cursor: "pointer",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(8px)",
+                  transition: "all 0.3s ease",
+                  border: "1px solid rgba(255, 255, 255, 0.15) !important",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-8px)";
+                  e.currentTarget.style.boxShadow = "0 8px 30px rgba(0, 200, 150, 0.4)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+              >
+                <Card.Body className="d-flex flex-column align-items-center justify-content-center">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center mb-4"
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      background: "linear-gradient(135deg, #00c896 0%, #007bff 100%)",
+                      boxShadow: "0 0 20px rgba(0, 200, 150, 0.5)",
+                    }}
+                  >
+                    <i className="fe fe-users text-white fs-1" />
+                  </div>
+                  <h3 className="text-white fw-bold mb-2">Bonding</h3>
+                  <p className="text-white-50 mb-0 small">
+                    Manage profiles, call logs, analytics, and settings for the Bonding application.
                   </p>
                 </Card.Body>
               </Card>

@@ -31,6 +31,8 @@ const NavbarVertical = (props) => {
     const selectedApp = localStorage.getItem("selectedAdminApp");
     if (selectedApp === "flamez" || selectedApp === "1") {
       setAppTitle("Flamez");
+    } else if (selectedApp === "bonding" || selectedApp === "2") {
+      setAppTitle("Bonding");
     } else {
       setAppTitle("Pair Ever");
     }

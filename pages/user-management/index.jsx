@@ -503,8 +503,24 @@ const ManageInvoice = () => {
                         </div>
                       </td>
                       <td>
-                        <span className={`badge ${user.appName && (user.appName.toLowerCase() === 'flamez' || user.appName === '1') ? 'bg-danger' : 'bg-primary'}`}>
-                          {user.appName ? ((user.appName.toLowerCase() === 'flamez' || user.appName === '1') ? 'Flamez' : (user.appName === '0' ? 'PairEver' : user.appName)) : 'PairEver'}
+                        <span
+                          className={`badge ${
+                            user.appName && (user.appName.toLowerCase() === "flamez" || user.appName === "1")
+                              ? "bg-danger"
+                              : user.appName && (user.appName.toLowerCase() === "bonding" || user.appName === "2")
+                              ? "bg-success"
+                              : "bg-primary"
+                          }`}
+                        >
+                          {user.appName
+                            ? user.appName.toLowerCase() === "flamez" || user.appName === "1"
+                              ? "Flamez"
+                              : user.appName.toLowerCase() === "bonding" || user.appName === "2"
+                              ? "Bonding"
+                              : user.appName === "0"
+                              ? "PairEver"
+                              : user.appName
+                            : "PairEver"}
                         </span>
                       </td>
                       <td>
