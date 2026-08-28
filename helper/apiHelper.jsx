@@ -44,7 +44,7 @@ const endRequest = () => {
 
 export const authUrl = (() => {
   // return "http://103.181.21.210:9500/api/v1/admin/auth";
-  // return "http://192.168.1.77:5000/api/v1/admin/auth"; 
+  // return "http://localhost:5000/api/v1/admin/auth";
   return "https://api.pair-ever.com/api/v1/admin/auth"
 
 
@@ -148,6 +148,7 @@ const makeRequest = async (
     if (selectedApp === "pairever") selectedApp = "0";
     else if (selectedApp === "flamez") selectedApp = "1";
     else if (selectedApp === "bonding") selectedApp = "2";
+    else if (selectedApp === "heylove" || selectedApp === "hey love") selectedApp = "3";
     headers["X-App-Name"] = selectedApp;
   }
 

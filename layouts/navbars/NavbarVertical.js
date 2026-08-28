@@ -33,6 +33,8 @@ const NavbarVertical = (props) => {
       setAppTitle("Flamez");
     } else if (selectedApp === "bonding" || selectedApp === "2") {
       setAppTitle("Bonding");
+    } else if (selectedApp === "heylove" || selectedApp === "3") {
+      setAppTitle("Heylove");
     } else {
       setAppTitle("Pair Ever");
     }

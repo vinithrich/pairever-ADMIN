@@ -509,6 +509,8 @@ const ManageInvoice = () => {
                               ? "bg-danger"
                               : user.appName && (user.appName.toLowerCase() === "bonding" || user.appName === "2")
                               ? "bg-success"
+                              : user.appName && (user.appName.toLowerCase() === "heylove" || user.appName === "3")
+                              ? "bg-info"
                               : "bg-primary"
                           }`}
                         >
@@ -517,6 +519,8 @@ const ManageInvoice = () => {
                               ? "Flamez"
                               : user.appName.toLowerCase() === "bonding" || user.appName === "2"
                               ? "Bonding"
+                              : user.appName.toLowerCase() === "heylove" || user.appName === "3"
+                              ? "Heylove"
                               : user.appName === "0"
                               ? "PairEver"
                               : user.appName
