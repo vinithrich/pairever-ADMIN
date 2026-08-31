@@ -511,6 +511,10 @@ const ManageInvoice = () => {
                               ? "bg-success"
                               : user.appName && (user.appName.toLowerCase() === "heylove" || user.appName === "3")
                               ? "bg-info"
+                              : user.appName && (user.appName.toLowerCase() === "doly" || user.appName === "4")
+                              ? "bg-warning text-dark"
+                              : user.appName && (user.appName.toLowerCase() === "bestie" || user.appName.toLowerCase() === "best" || user.appName === "5")
+                              ? "bg-dark"
                               : "bg-primary"
                           }`}
                         >
@@ -521,6 +525,10 @@ const ManageInvoice = () => {
                               ? "Bonding"
                               : user.appName.toLowerCase() === "heylove" || user.appName === "3"
                               ? "Heylove"
+                              : user.appName.toLowerCase() === "doly" || user.appName === "4"
+                              ? "Doly"
+                              : user.appName.toLowerCase() === "bestie" || user.appName.toLowerCase() === "best" || user.appName === "5"
+                              ? "Bestie"
                               : user.appName === "0"
                               ? "PairEver"
                               : user.appName

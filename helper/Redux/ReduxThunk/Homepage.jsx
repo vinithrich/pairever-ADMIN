@@ -106,6 +106,34 @@ export const UserloginApi =
       } catch (e) { }
     };
 
+export const VerifyAdminOtpApi =
+  (data, callback = () => { }) =>
+    async (dispatch) => {
+      try {
+        const response = await apiHelper.postRequest("verify-otp", data);
+        callback(response);
+        if (response) {
+          return response;
+        } else {
+          return false;
+        }
+      } catch (e) { }
+    };
+
+export const SendAdminOtpApi =
+  (data, callback = () => { }) =>
+    async (dispatch) => {
+      try {
+        const response = await apiHelper.postRequest("send-otp", data);
+        callback(response);
+        if (response) {
+          return response;
+        } else {
+          return false;
+        }
+      } catch (e) { }
+    };
+
 export const GetDashBoardDetailsApi =
   (callback = () => { }) =>
     async (dispatch) => {

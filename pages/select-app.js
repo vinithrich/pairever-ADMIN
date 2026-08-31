@@ -19,7 +19,11 @@ const SelectAppPage = () => {
           ? "Bonding"
           : appName === "heylove" || appName === "3"
             ? "Heylove"
-            : "PairEver";
+            : appName === "doly" || appName === "4"
+              ? "Doly"
+              : appName === "bestie" || appName === "best" || appName === "5"
+                ? "Bestie"
+                : "PairEver";
     Notiflix.Notify.success(`Accessing ${label} Panel`);
 
     // Redirect to the first permitted dashboard route
@@ -39,7 +43,8 @@ const SelectAppPage = () => {
           </div>
 
           <Row className="g-4 justify-content-center">
-            <Col sm={6} md={3}>
+            {/* PairEver */}
+            <Col sm={6} md={4}>
               <Card
                 className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
                 onClick={() => handleSelectApp("0")}
@@ -81,7 +86,8 @@ const SelectAppPage = () => {
               </Card>
             </Col>
 
-            <Col sm={6} md={3}>
+            {/* Flamez */}
+            <Col sm={6} md={4}>
               <Card
                 className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
                 onClick={() => handleSelectApp("1")}
@@ -123,7 +129,8 @@ const SelectAppPage = () => {
               </Card>
             </Col>
 
-            <Col sm={6} md={3}>
+            {/* Bonding */}
+            <Col sm={6} md={4}>
               <Card
                 className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
                 onClick={() => handleSelectApp("2")}
@@ -165,7 +172,8 @@ const SelectAppPage = () => {
               </Card>
             </Col>
 
-            <Col sm={6} md={3}>
+            {/* Heylove */}
+            <Col sm={6} md={4}>
               <Card
                 className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
                 onClick={() => handleSelectApp("3")}
@@ -190,8 +198,6 @@ const SelectAppPage = () => {
                 }}
               >
                 <Card.Body className="d-flex flex-column align-items-center justify-content-center">
-
-                  {/* Heylove Icon */}
                   <div
                     className="rounded-circle d-flex align-items-center justify-content-center mb-4"
                     style={{
@@ -212,13 +218,120 @@ const SelectAppPage = () => {
                     />
                   </div>
 
+                  <h3 className="text-white fw-bold mb-2">Heylove</h3>
+                  <p className="text-white-50 mb-0 small">
+                    Manage profiles, call logs, analytics, and settings for the Heylove application.
+                  </p>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            {/* Doly */}
+            <Col sm={6} md={4}>
+              <Card
+                className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
+                onClick={() => handleSelectApp("4")}
+                style={{
+                  cursor: "pointer",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  transition: "all 0.3s ease",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-8px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 8px 30px rgba(255, 170, 0, 0.4)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+              >
+                <Card.Body className="d-flex flex-column align-items-center justify-content-center">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center mb-4"
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      background:
+                        "linear-gradient(135deg, #ffaa00 0%, #ff5500 100%)",
+                      boxShadow: "0 0 20px rgba(255, 170, 0, 0.5)",
+                    }}
+                  >
+                    <div
+                      className="rounded-circle d-flex align-items-center justify-content-center mb-4"
+                      style={{
+                        width: "80px",
+                        height: "80px",
+                        background: "linear-gradient(135deg, #ffaa00 0%, #ff5500 100%)",
+                        boxShadow: "0 0 20px rgba(255, 170, 0, 0.5)",
+                        fontSize: "42px",
+                      }}
+                    >
+                      👩🏻
+                    </div>
+                  </div>
+
+                  <h3 className="text-white fw-bold mb-2">Doly</h3>
+                  <p className="text-white-50 mb-0 small">
+                    Manage profiles, call logs, analytics, and settings for the Doly application.
+                  </p>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            {/* Bestie */}
+            <Col sm={6} md={4}>
+              <Card
+                className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
+                onClick={() => handleSelectApp("5")}
+                style={{
+                  cursor: "pointer",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  transition: "all 0.3s ease",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-8px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 8px 30px rgba(0, 180, 216, 0.4)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+              >
+                <Card.Body className="d-flex flex-column align-items-center justify-content-center">
+
+                  {/* Bestie Icon */}
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center mb-4"
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      background: "linear-gradient(135deg, #00b4d8 0%, #0077b6 100%)",
+                      boxShadow: "0 0 20px rgba(0, 180, 216, 0.5)",
+                      fontSize: "42px",
+                    }}
+                  >
+                    🫂
+                  </div>
+
                   <h3 className="text-white fw-bold mb-2">
-                    Heylove
+                    Bestie
                   </h3>
 
                   <p className="text-white-50 mb-0 small">
                     Manage profiles, call logs, analytics, and settings for the
-                    Heylove application.
+                    Bestie application.
                   </p>
 
                 </Card.Body>
