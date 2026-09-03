@@ -1225,6 +1225,98 @@ export const DeleteStaffGiftApi =
       }
     };
 
+// ---- Call gifts (user -> staff during a call) ------------------------------
+// Separate catalog from the Staff Gift reward cards above.
+
+export const GetCallGiftsApi =
+  (callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest("getCallGiftList");
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const SaveCallGiftApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest(
+          "saveCallGift",
+          data,
+          data instanceof FormData
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const DeleteCallGiftApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest("deleteCallGift", data);
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const GetCallGiftTransactionsApi =
+  (query = "", callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.getRequest(
+          `getCallGiftTransactions${query ? `?${query}` : ""}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
+export const UpdateCallGiftPayoutStatusApi =
+  (data, callback = () => { }) =>
+    async () => {
+      try {
+        const response = await apiHelper.postRequest(
+          "updateCallGiftPayoutStatus",
+          data
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        callback({
+          status: false,
+          message: e?.message || "Request failed",
+        });
+        return null;
+      }
+    };
+
 export const SendAdminPushApi =
   (data, callback = () => { }) =>
     async () => {

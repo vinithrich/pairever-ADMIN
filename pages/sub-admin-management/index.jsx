@@ -24,6 +24,7 @@ const ACCESS_OPTIONS = [
   { key: "userManagement", label: "User Management" },
   { key: "staffManagement", label: "Staff Management" },
   { key: "staffGifts", label: "Staff Gifts" },
+  { key: "callGifts", label: "Call Gifts" },
   { key: "depositHistory", label: "Deposit History" },
   { key: "withdrawManagement", label: "Withdraw Management" },
   { key: "paymentsStructure", label: "Payments Structure" },

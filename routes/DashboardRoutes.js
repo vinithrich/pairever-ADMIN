@@ -68,6 +68,13 @@ export const DashboardMenu = [
   },
   {
     id: uuid(),
+    title: "Call Gifts",
+    icon: "heart",
+    link: "/call-gifts",
+    accessKey: "callGifts",
+  },
+  {
+    id: uuid(),
     title: "Shift Reward Rules",
     icon: "clock",
     link: "/shift-reward-management",
