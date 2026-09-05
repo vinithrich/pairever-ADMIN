@@ -14,6 +14,7 @@ import {
 } from "react-bootstrap";
 import Notiflix from "notiflix";
 import { PageHeading } from "@/widgets";
+import apiHelper from "@/helper/apiHelper";
 import {
   DeleteCallGiftApi,
   GetCallGiftsApi,
@@ -219,6 +220,11 @@ const CallGiftsPage = () => {
   // Replaces window.confirm so confirmations match the rest of the panel.
   const [confirmModal, setConfirmModal] = useState(null);
 
+  // Master switch for the whole gift feature. Stored in SystemSettings (shared with
+  // the System Settings page), not on an individual gift.
+  const [giftIconEnabled, setGiftIconEnabled] = useState(true);
+  const [isTogglingFeature, setIsTogglingFeature] = useState(false);
+
   const loadGifts = useCallback(async () => {
     setIsLoading(true);
 
@@ -235,6 +241,46 @@ const CallGiftsPage = () => {
       })
     );
   }, [dispatch]);
+
+  const loadFeatureFlag = useCallback(async () => {
+    try {
+      const resp = await apiHelper.getRequest("settings");
+      if (resp?.status) {
+        setGiftIconEnabled(resp.data?.giftIconEnabled !== false);
+      }
+    } catch (err) {
+      console.error("Fetch gift feature flag error:", err);
+    }
+  }, []);
+
+  const handleFeatureToggle = async (nextEnabled) => {
+    setIsTogglingFeature(true);
+    // Optimistic: the switch should respond immediately; reverted below on failure.
+    setGiftIconEnabled(nextEnabled);
+
+    try {
+      const resp = await apiHelper.postRequest("settings", {
+        giftIconEnabled: nextEnabled,
+      });
+
+      if (resp?.status) {
+        setGiftIconEnabled(resp.data?.giftIconEnabled !== false);
+        Notiflix.Notify.success(
+          nextEnabled
+            ? "Gift icon is now visible in the app"
+            : "Gift icon is now hidden from the app"
+        );
+      } else {
+        setGiftIconEnabled(!nextEnabled);
+        Notiflix.Notify.failure(resp?.message || "Failed to update setting");
+      }
+    } catch (err) {
+      setGiftIconEnabled(!nextEnabled);
+      Notiflix.Notify.failure("An error occurred while updating the setting");
+    } finally {
+      setIsTogglingFeature(false);
+    }
+  };
 
   const loadTransactions = useCallback(async () => {
     setIsTxnLoading(true);
@@ -263,7 +309,8 @@ const CallGiftsPage = () => {
   useEffect(() => {
     loadGifts();
     loadTransactions();
-  }, [loadGifts, loadTransactions]);
+    loadFeatureFlag();
+  }, [loadGifts, loadTransactions, loadFeatureFlag]);
 
   const activeCount = useMemo(
     () => gifts.filter((gift) => gift.isActive).length,
@@ -537,6 +584,38 @@ const CallGiftsPage = () => {
       </div>
 
       <Row className="mt-4">
+        <Col xs={12} className="mb-4">
+          <Card
+            className="shadow-sm"
+            border={giftIconEnabled ? "success" : "warning"}
+          >
+            <Card.Body className="d-flex align-items-center justify-content-between flex-wrap gap-3 py-3">
+              <div>
+                <h5 className="mb-1">
+                  Gift Icon in App{" "}
+                  <Badge bg={giftIconEnabled ? "success" : "warning"} text={giftIconEnabled ? undefined : "dark"}>
+                    {giftIconEnabled ? "Visible" : "Hidden"}
+                  </Badge>
+                </h5>
+                <p className="text-muted mb-0">
+                  {giftIconEnabled
+                    ? "Users see the gift icon during calls and can send gifts."
+                    : "The gift icon is hidden, the gift list returns empty, and sending a gift is rejected."}
+                </p>
+              </div>
+              <Form.Check
+                type="switch"
+                id="gift-feature-switch"
+                className="fs-4 mb-0"
+                checked={giftIconEnabled}
+                disabled={isTogglingFeature}
+                onChange={(e) => handleFeatureToggle(e.target.checked)}
+                label={isTogglingFeature ? "Saving..." : ""}
+              />
+            </Card.Body>
+          </Card>
+        </Col>
+
         <Col xl={4} lg={5} className="mb-4">
           <Card className="shadow-sm">
             <Card.Body className="p-4">

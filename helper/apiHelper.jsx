@@ -44,7 +44,7 @@ const endRequest = () => {
 
 export const authUrl = (() => {
   // return "http://103.181.21.210:9500/api/v1/admin/auth";
-  // return "http://localhost:5000/api/v1/admin/auth";
+  // return "http://192.168.1.77:5000/api/v1/admin/auth";
   return "https://api.pair-ever.com/api/v1/admin/auth"
 
 
@@ -182,10 +182,53 @@ const makeRequest = async (
   }
 };
 
+// Single exit path for an expired/invalid session.
+//
+// Three things went wrong before and each one caused the reload loop:
+//   1. Only "kudavasalToken" was cleared. AuthContext keeps the session under
+//      "adminAuth", and getAuthToken() falls back to it — so after redirecting to "/"
+//      the app still looked logged in, _app.js bounced it straight back into the
+//      dashboard, that page called the API with the same dead token, and round it went.
+//   2. No guard for already being on "/", so the login page could redirect to itself.
+//   3. A dashboard fires many requests at once and EVERY 401 triggered its own
+//      navigation, stacking several reloads.
+//
+// Storage is cleared BEFORE navigating: the old code called replace() first and the
+// clear after, which the navigation could cut short.
+let loggingOut = false;
+
+// Pages reachable without a session. A 401 on one of these is a failed login
+// attempt, not an expired session — verifyAdminOtp answers 401 for a wrong OTP too,
+// so redirecting or reloading here would wipe the form the user is filling in and
+// hide the "Invalid or expired OTP" message they need to see.
+const PUBLIC_PATHS = ["/", "/404", "/privacy-policy"];
+
+export const forceLogout = () => {
+  if (typeof window === "undefined" || loggingOut) return;
+
+  if (PUBLIC_PATHS.includes(window.location.pathname)) return;
+
+  // Set only once we are certain we are leaving, so a wrong OTP on the login page
+  // cannot latch this flag and disarm the real logout later in the session.
+  loggingOut = true;
+
+  try {
+    // The same keys AuthContext.logout() removes, so a forced logout leaves exactly
+    // the state a manual one does.
+    localStorage.removeItem("adminAuth");
+    localStorage.removeItem("kudavasalToken");
+    localStorage.removeItem("email");
+    localStorage.removeItem("selectedAdminApp");
+  } catch (e) {
+    // storage can throw in private mode; the redirect below still has to happen
+  }
+
+  window.location.replace("/");
+};
+
 const ErrorReload = (res) => {
-  if (res !== undefined && window.location.pathname !== "/") {
-    window.location.replace("/");
-    localStorage.clear();
+  if (res !== undefined) {
+    forceLogout();
   }
 };
 
@@ -227,8 +270,7 @@ export const handleResponse = async (response) => {
     (response.message &&
       response.message === "Access Denied. No token provided.")
   ) {
-    localStorage.removeItem("kudavasalToken"); // Clear token
-    window.location.href = "/"; // Redirect to login
+    forceLogout();
     throw new Error("Unauthorized");
   }
   // Handle server errors (500) including token expiration
@@ -242,8 +284,7 @@ export const handleResponse = async (response) => {
     }
 
     if (message === "jwt expired" || message === "Please authenticate") {
-      localStorage.removeItem("kudavasalToken"); // Clear token
-      window.location.href = "/"; // Redirect to login
+      forceLogout();
       throw new Error("Session expired");
     }
     // Throw generic error for other 500 responses
