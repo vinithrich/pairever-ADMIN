@@ -835,7 +835,7 @@ const CallGiftsPage = () => {
                   <th>Coins</th>
                   <th>Staff Amount (₹)</th>
                   <th>Payout Status</th>
-                  <th>Action</th>
+                  {/* <th>Action</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -886,7 +886,7 @@ const CallGiftsPage = () => {
                           </Badge>
                         )}
                       </td>
-                      <td>
+                      {/* <td>
                         {txn.payoutStatus === "paid" ? (
                           <Button
                             size="sm"
@@ -910,7 +910,7 @@ const CallGiftsPage = () => {
                               : "Mark Paid"}
                           </Button>
                         )}
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 ) : (
