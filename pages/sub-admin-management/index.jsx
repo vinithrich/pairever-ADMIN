@@ -24,6 +24,9 @@ const ACCESS_OPTIONS = [
   { key: "userManagement", label: "User Management" },
   { key: "staffManagement", label: "Staff Management" },
   { key: "staffGifts", label: "Staff Gifts" },
+  { key: "shiftRewards", label: "Shift Reward Rules" },
+  { key: "taskCampaigns", label: "Task Campaigns & Rewards" },
+  { key: "leaderboard", label: "Leaderboard" },
   { key: "callGifts", label: "Call Gifts" },
   { key: "depositHistory", label: "Deposit History" },
   { key: "withdrawManagement", label: "Withdraw Management" },
@@ -37,12 +40,16 @@ const ACCESS_OPTIONS = [
   { key: "reports", label: "Reports" },
   { key: "callHistory", label: "Call History" },
   { key: "chatAudit", label: "Chat Audit" },
+  { key: "feeManagement", label: "Fee Management" },
+  { key: "referralHistories", label: "Referral Histories" },
+  { key: "settingsManagement", label: "System Settings & Popups" },
   { key: "subAdminManagement", label: "Sub-Admin Management" },
 ];
 
 const INITIAL_EDIT_FORM = {
   name: "",
   email: "",
+  mobileNumber: "",
   role: "",
   status: "active",
 };
@@ -133,6 +140,7 @@ const SubAdminManagement = () => {
     setEditForm({
       name: admin.name || admin.username || "",
       email: admin.email || "",
+      mobileNumber: admin.mobileNumber || admin.phone || admin.mobile || "",
       role: roleValue,
       status: admin.status || (admin.isActive === false ? "inactive" : "active"),
     });
@@ -176,6 +184,11 @@ const SubAdminManagement = () => {
       return false;
     }
 
+    if (editForm.mobileNumber.replace(/\D/g, "").length !== 10) {
+      Notiflix.Notify.failure("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
     if (!/^\S+@\S+\.\S+$/.test(editForm.email)) {
       Notiflix.Notify.failure("Please enter a valid email");
       return false;
@@ -209,6 +222,7 @@ const SubAdminManagement = () => {
       subAdminId,
       name: editForm.name.trim(),
       email: editForm.email.trim(),
+      mobileNumber: editForm.mobileNumber.replace(/\D/g, ""),
       role: editForm.role,
       roleName: roleLabel,
       status: editForm.status,
@@ -287,6 +301,7 @@ const SubAdminManagement = () => {
       serialNumber: (_, index) => (currentPage - 1) * PAGE_SIZE + index + 1,
       name: (admin) => admin.name || admin.username || "",
       email: (admin) => admin.email || "",
+      mobileNumber: (admin) => admin.mobileNumber || admin.phone || admin.mobile || "",
       role: (admin) => admin.roleName || admin.role || "",
       status: (admin) => admin.status || (admin.isActive === false ? "inactive" : "active"),
       permissions: (admin) => (admin.permissions || admin.access || []).length,
@@ -353,6 +368,7 @@ const SubAdminManagement = () => {
                   <th><SortableHeader label="S.No" sortKey="serialNumber" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Name" sortKey="name" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Email" sortKey="email" sortConfig={sortConfig} onSort={handleSort} /></th>
+                  <th><SortableHeader label="Mobile" sortKey="mobileNumber" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Role" sortKey="role" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Access" sortKey="permissions" sortConfig={sortConfig} onSort={handleSort} /></th>
                   <th><SortableHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={handleSort} /></th>
@@ -371,6 +387,7 @@ const SubAdminManagement = () => {
                         <td>{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                         <td>{admin.name || admin.username || "-"}</td>
                         <td>{admin.email || "-"}</td>
+                        <td>{admin.mobileNumber || admin.phone || admin.mobile || "-"}</td>
                         <td>{admin.roleName || admin.role || "-"}</td>
                         <td>{Array.isArray(permissions) ? permissions.length : 0} permissions</td>
                         <td>{renderStatus(admin)}</td>
@@ -403,7 +420,7 @@ const SubAdminManagement = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="8" className="text-center">
+                    <td colSpan="9" className="text-center">
                       {isLoading ? "Loading sub-admins..." : "No Sub-Admins Found"}
                     </td>
                   </tr>
@@ -450,6 +467,22 @@ const SubAdminManagement = () => {
                     onChange={handleEditChange}
                     disabled={isSaving}
                   />
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Mobile Number</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    name="mobileNumber"
+                    value={editForm.mobileNumber}
+                    onChange={handleEditChange}
+                    disabled={isSaving}
+                  />
+                  <Form.Text className="text-muted">Used to sign in.</Form.Text>
                 </Form.Group>
               </Col>
 

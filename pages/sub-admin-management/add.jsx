@@ -18,6 +18,9 @@ const ACCESS_OPTIONS = [
   { key: "userManagement", label: "User Management" },
   { key: "staffManagement", label: "Staff Management" },
   { key: "staffGifts", label: "Staff Gifts" },
+  { key: "shiftRewards", label: "Shift Reward Rules" },
+  { key: "taskCampaigns", label: "Task Campaigns & Rewards" },
+  { key: "leaderboard", label: "Leaderboard" },
   { key: "callGifts", label: "Call Gifts" },
   { key: "depositHistory", label: "Deposit History" },
   { key: "withdrawManagement", label: "Withdraw Management" },
@@ -31,12 +34,16 @@ const ACCESS_OPTIONS = [
   { key: "reports", label: "Reports" },
   { key: "callHistory", label: "Call History" },
   { key: "chatAudit", label: "Chat Audit" },
+  { key: "feeManagement", label: "Fee Management" },
+  { key: "referralHistories", label: "Referral Histories" },
+  { key: "settingsManagement", label: "System Settings & Popups" },
   { key: "subAdminManagement", label: "Sub-Admin Management" },
 ];
 
 const INITIAL_FORM = {
   name: "",
   email: "",
+  mobileNumber: "",
   password: "",
   confirmPassword: "",
   role: "",
@@ -96,6 +103,13 @@ const CreateSubAdmin = () => {
       return false;
     }
 
+    // Admins sign in with their mobile number, so a sub-admin without one could
+    // never log in at all.
+    if (formData.mobileNumber.replace(/\D/g, "").length !== 10) {
+      Notiflix.Notify.failure("Please enter a valid 10-digit mobile number");
+      return false;
+    }
+
     if (!formData.role) {
       Notiflix.Notify.failure("Please select a role");
       return false;
@@ -129,6 +143,7 @@ const CreateSubAdmin = () => {
     const payload = {
       name: formData.name.trim(),
       email: formData.email.trim(),
+      mobileNumber: formData.mobileNumber.replace(/\D/g, ""),
       password: formData.password,
       role: formData.role,
       roleName: roleLabel,
@@ -193,6 +208,22 @@ const CreateSubAdmin = () => {
                     onChange={handleChange}
                     placeholder="Enter email address"
                   />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Mobile Number</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    name="mobileNumber"
+                    value={formData.mobileNumber}
+                    onChange={handleChange}
+                    placeholder="10-digit mobile number"
+                  />
+                  <Form.Text className="text-muted">
+                    Used to sign in — the login OTP is sent to this number.
+                  </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">

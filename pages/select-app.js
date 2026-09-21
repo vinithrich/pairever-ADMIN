@@ -23,7 +23,9 @@ const SelectAppPage = () => {
               ? "Doly"
               : appName === "bestie" || appName === "best" || appName === "5"
                 ? "Bestie"
-                : "PairEver";
+                : appName === "flirtfling" || appName === "flirt fling" || appName === "8"
+                  ? "Flirt Fling"
+                  : "PairEver";
     Notiflix.Notify.success(`Accessing ${label} Panel`);
 
     // Redirect to the first permitted dashboard route
@@ -332,6 +334,60 @@ const SelectAppPage = () => {
                   <p className="text-white-50 mb-0 small">
                     Manage profiles, call logs, analytics, and settings for the
                     Bestie application.
+                  </p>
+
+                </Card.Body>
+              </Card>
+            </Col>
+
+            {/* Flirt Fling */}
+            <Col sm={6} md={4}>
+              <Card
+                className="shadow border-0 rounded-4 select-app-card py-5 px-4 text-center cursor-pointer h-100"
+                onClick={() => handleSelectApp("8")}
+                style={{
+                  cursor: "pointer",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                  transition: "all 0.3s ease",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-8px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 8px 30px rgba(232, 62, 140, 0.4)";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+              >
+                <Card.Body className="d-flex flex-column align-items-center justify-content-center">
+
+                  {/* Flirt Fling Icon */}
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center mb-4"
+                    style={{
+                      width: "80px",
+                      height: "80px",
+                      background: "linear-gradient(135deg, #ff4d94 0%, #c2185b 100%)",
+                      boxShadow: "0 0 20px rgba(232, 62, 140, 0.5)",
+                      fontSize: "42px",
+                    }}
+                  >
+                    😘
+                  </div>
+
+                  <h3 className="text-white fw-bold mb-2">
+                    Flirt Fling
+                  </h3>
+
+                  <p className="text-white-50 mb-0 small">
+                    Manage profiles, call logs, analytics, and settings for the
+                    Flirt Fling application.
                   </p>
 
                 </Card.Body>

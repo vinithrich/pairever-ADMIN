@@ -515,8 +515,17 @@ const ManageInvoice = () => {
                               ? "bg-warning text-dark"
                               : user.appName && (user.appName.toLowerCase() === "bestie" || user.appName.toLowerCase() === "best" || user.appName === "5")
                               ? "bg-dark"
+                              : user.appName && (user.appName.toLowerCase() === "flirtfling" || user.appName.toLowerCase() === "flirt fling" || user.appName === "8")
+                              ? ""
                               : "bg-primary"
                           }`}
+                          // Every Bootstrap badge colour is already assigned to another app,
+                          // so Flirt Fling gets its own pink rather than sharing one.
+                          style={
+                            user.appName && (user.appName.toLowerCase() === "flirtfling" || user.appName.toLowerCase() === "flirt fling" || user.appName === "8")
+                              ? { backgroundColor: "#e83e8c", color: "#fff" }
+                              : undefined
+                          }
                         >
                           {user.appName
                             ? user.appName.toLowerCase() === "flamez" || user.appName === "1"
@@ -529,6 +538,8 @@ const ManageInvoice = () => {
                               ? "Doly"
                               : user.appName.toLowerCase() === "bestie" || user.appName.toLowerCase() === "best" || user.appName === "5"
                               ? "Bestie"
+                              : user.appName.toLowerCase() === "flirtfling" || user.appName.toLowerCase() === "flirt fling" || user.appName === "8"
+                              ? "Flirt Fling"
                               : user.appName === "0"
                               ? "PairEver"
                               : user.appName
