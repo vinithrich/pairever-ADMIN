@@ -117,3 +117,60 @@ a {
 .go_back i {
     color: $brand-lime-start !important;
 }
+
+// ---------------------------------------------------------------------------
+// Mobile sidebar
+//
+// Below 768px the sidebar is an overlay, not a column: the old rule pushed
+// #page-content 15.7rem to the right when the menu opened, which on a 360px
+// screen shoved the page off-screen and left the body scrolling sideways.
+// ---------------------------------------------------------------------------
+@media (max-width: 767.98px) {
+  #db-wrapper.toggled #page-content {
+    margin-left: 0 !important;
+  }
+
+  #page-content {
+    // 100vw + any margin overflows; the wrapper already constrains the width.
+    min-width: 0 !important;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    // Under the sidebar (z-index 11), above everything else.
+    z-index: 10;
+  }
+
+  // Wide pages (tables, report cards) need less gutter on a phone.
+  .p-6 {
+    padding: 1rem !important;
+  }
+  .px-6 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+// Sidebar menu search
+.navbar-vertical {
+  .input-group-text,
+  .form-control {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    &:focus {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      box-shadow: none;
+    }
+  }
+}

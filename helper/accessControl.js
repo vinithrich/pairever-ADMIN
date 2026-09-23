@@ -22,6 +22,7 @@ export const ROUTE_ACCESS = [
   { path: "/chat-audit", accessKey: "chatAudit" },
   { path: "/staff-reports", accessKey: "reports" },
   { path: "/user-reports", accessKey: "reports" },
+  { path: "/app-reports", accessKey: "reports" },
   { path: "/overall-call-history", accessKey: "callHistory" },
   { path: "/staff-speaking-reports", accessKey: "reports" },
   { path: "/system-settings", accessKey: "settingsManagement" },

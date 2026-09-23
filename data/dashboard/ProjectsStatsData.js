@@ -28,6 +28,27 @@ export const ProjectsStats = [
     link: "/staff-management",
     keyPath: "staff.pending",
   },
+  // Live presence. hideDifference: these move constantly, so a "+3 since last visit"
+  // delta would be noise rather than information.
+  {
+    id: 15,
+    title: "Staff Online",
+    value: "",
+    link: "/online-staff",
+    keyPath: "staff.online",
+    descriptionPath: "staff.available",
+    descriptionSuffix: " available now",
+    hideDifference: true,
+  },
+  {
+    id: 16,
+    title: "Staff Busy",
+    value: "",
+    link: "/online-staff",
+    keyPath: "staff.busy",
+    description: "On a call right now",
+    hideDifference: true,
+  },
   {
     id: 7,
     title: "Total Deposits",

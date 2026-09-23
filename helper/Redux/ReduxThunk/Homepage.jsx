@@ -1577,3 +1577,23 @@ export const GetAdminChatMessagesApi =
         return null;
       }
     };
+
+export const GetMultiAppUsersApi =
+  (params = {}, callback = () => { }) =>
+    async (dispatch) => {
+      try {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiHelper.getRequest(
+          `getMultiAppUsers?${queryString}`
+        );
+        callback(response);
+        return response;
+      } catch (e) {
+        const errorResponse = {
+          status: false,
+          message: e?.message || "Failed to fetch multi-app users",
+        };
+        callback(errorResponse);
+        return errorResponse;
+      }
+    };

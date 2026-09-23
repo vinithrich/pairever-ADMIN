@@ -9,6 +9,9 @@ import {
   Card,
   Image,
   Badge,
+  Form,
+  InputGroup,
+  Button,
   useAccordionButton,
   AccordionContext,
 } from "react-bootstrap";
@@ -26,6 +29,7 @@ const NavbarVertical = (props) => {
   const location = useRouter();
   const { user } = useAuth();
   const [appTitle, setAppTitle] = useState("Pair Ever");
+  const [menuSearch, setMenuSearch] = useState("");
 
   useEffect(() => {
     const selectedApp = localStorage.getItem("selectedAdminApp");
@@ -66,12 +70,42 @@ const NavbarVertical = (props) => {
       })
       .filter(Boolean);
 
-  const allowedMenu = filterMenuByAccess(DashboardMenu).map((item) => {
+  const accessibleMenu = filterMenuByAccess(DashboardMenu).map((item) => {
     if (item.title === "Pair Ever") {
       return { ...item, title: appTitle };
     }
     return item;
   });
+
+  // Search runs over the menu the admin is ALREADY allowed to see, so it can never
+  // surface a page they have no permission for.
+  const searchTerm = menuSearch.trim().toLowerCase();
+
+  const filterMenuBySearch = (items = []) =>
+    items
+      .map((item) => {
+        // Group headings have no link of their own; keep one only if something
+        // under it survives, which the pass below handles.
+        if (item.grouptitle) return item;
+
+        if (item.children) {
+          const children = filterMenuBySearch(item.children);
+          if (!children.length) return null;
+          return { ...item, children };
+        }
+
+        const haystack = `${item.title || ""} ${item.name || ""}`.toLowerCase();
+        return haystack.includes(searchTerm) ? item : null;
+      })
+      .filter(Boolean)
+      // Drop a heading that ended up with nothing beneath it.
+      .filter((item, index, list) => {
+        if (!item.grouptitle) return true;
+        const next = list[index + 1];
+        return Boolean(next) && !next.grouptitle;
+      });
+
+  const allowedMenu = searchTerm ? filterMenuBySearch(accessibleMenu) : accessibleMenu;
 
   const CustomToggle = ({ children, eventKey, icon }) => {
     const { activeEventKey } = useContext(AccordionContext);
@@ -152,6 +186,37 @@ const NavbarVertical = (props) => {
   return (
     <Fragment>
       <SimpleBar className="navbar-vertical-scroll">
+        <div className="px-4 pt-4 pb-2">
+          <InputGroup size="sm">
+            <InputGroup.Text className="bg-transparent border-end-0">
+              <i className="fe fe-search" />
+            </InputGroup.Text>
+            <Form.Control
+              type="search"
+              placeholder="Search menu..."
+              aria-label="Search menu"
+              value={menuSearch}
+              onChange={(e) => setMenuSearch(e.target.value)}
+              className="border-start-0"
+            />
+            {menuSearch && (
+              <Button
+                variant="outline-secondary"
+                onClick={() => setMenuSearch("")}
+                aria-label="Clear menu search"
+              >
+                ×
+              </Button>
+            )}
+          </InputGroup>
+        </div>
+
+        {searchTerm && allowedMenu.length === 0 && (
+          <div className="px-4 py-3 text-muted small">
+            No menu items match &quot;{menuSearch}&quot;
+          </div>
+        )}
+
         <div className="nav-scroller">
           {/* <Link href="/" className="navbar-brand">
             <Image src="/images/brand/logo/logo.svg" alt="" />
@@ -159,7 +224,9 @@ const NavbarVertical = (props) => {
         </div>
         {/* Dashboard Menu */}
         <Accordion
-          defaultActiveKey="0"
+          // While searching, open every group so matches nested inside a collapsed
+          // section are actually visible instead of silently hidden.
+          {...(searchTerm ? { alwaysOpen: true, activeKey: allowedMenu.map((_, i) => i) } : { defaultActiveKey: "0" })}
           as="ul"
           className="navbar-nav flex-column"
         >

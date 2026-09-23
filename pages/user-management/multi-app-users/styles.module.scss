@@ -1,0 +1,33 @@
+.tableCellDropdown {
+  // Ensure table cells containing dropdowns do not restrict overflow
+  // so the dropdown menu can overflow the table grid cleanly
+  overflow: visible !important;
+  position: relative;
+}
+
+.tableResponsive {
+  // Prevent clipping of dropdown menus in the table layout
+  overflow: visible !important;
+}
+
+.dropdownMenu {
+  // Match standard admin panel dark theme dropdown background and border styles
+  background: linear-gradient(180deg, rgba(29, 35, 48, 0.98) 0%, rgba(18, 21, 28, 0.98) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dropdownItem {
+  // Enforce readable white text against dark dropdown menu background
+  color: #ffffff !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  background-color: transparent !important;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+  }
+}
+

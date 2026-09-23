@@ -149,6 +149,8 @@ const OverallCallHistoryPage = () => {
     audio: 0,
     video: 0,
     missed: 0,
+    audioSeconds: 0,
+    videoSeconds: 0,
   });
   const [dayWiseCounts, setDayWiseCounts] = useState([]);
   const [monthWiseCounts, setMonthWiseCounts] = useState([]);
@@ -259,6 +261,8 @@ const OverallCallHistoryPage = () => {
             audio: nextCounts?.audio ?? 0,
             video: nextCounts?.video ?? 0,
             missed: nextCounts?.missed ?? 0,
+            audioSeconds: nextCounts?.audioSeconds ?? 0,
+            videoSeconds: nextCounts?.videoSeconds ?? 0,
           });
           setDayWiseCounts(
             getNestedValue(
@@ -362,12 +366,55 @@ const OverallCallHistoryPage = () => {
     );
   }, [currentPage, history, sortConfig]);
 
+  // Talk time is stored in seconds. Hours are the useful unit at this scale:
+  // 8,094,638 audio seconds is 2,248.5 h, which "2248h 30m" states plainly.
+  const formatHours = (seconds) => {
+    const total = Math.max(0, Math.round(Number(seconds) || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    if (h === 0 && m === 0) return total > 0 ? `${total}s` : "0h";
+    return h > 0 ? `${h.toLocaleString("en-IN")}h ${m}m` : `${m}m`;
+  };
+
+  // Compact form for table cells, where "2,248.5 h" reads better than "2248h 30m".
+  const formatHoursShort = (seconds) => {
+    const hours = (Number(seconds) || 0) / 3600;
+    if (hours === 0) return "0";
+    if (hours < 0.1) return "<0.1";
+    return hours.toLocaleString("en-IN", { maximumFractionDigits: 1 });
+  };
+
   const statCards = [
     { label: "Total Calls", value: counts.total, subtext: "All call types" },
     { label: "Chat", value: counts.chat, subtext: "Chat sessions" },
-    { label: "Audio", value: counts.audio, subtext: "Audio calls" },
-    { label: "Video", value: counts.video, subtext: "Video calls" },
+    {
+      label: "Audio",
+      value: counts.audio,
+      subtext: `Audio calls · ${formatHours(counts.audioSeconds)} talk time`,
+    },
+    {
+      label: "Video",
+      value: counts.video,
+      subtext: `Video calls · ${formatHours(counts.videoSeconds)} talk time`,
+    },
     { label: "Missed", value: counts.missed, subtext: "Missed calls" },
+    {
+      label: "Audio Hours",
+      value: formatHours(counts.audioSeconds),
+      subtext: "Total audio talk time",
+    },
+    {
+      label: "Video Hours",
+      value: formatHours(counts.videoSeconds),
+      subtext: "Total video talk time",
+    },
+    {
+      label: "Total Talk Time",
+      value: formatHours(
+        (Number(counts.audioSeconds) || 0) + (Number(counts.videoSeconds) || 0)
+      ),
+      subtext: "Audio + video",
+    },
   ];
 
   return (
@@ -496,6 +543,8 @@ const OverallCallHistoryPage = () => {
                   <th className="text-end">Chat</th>
                   <th className="text-end">Audio</th>
                   <th className="text-end">Video</th>
+                  <th className="text-end">Audio Hrs</th>
+                  <th className="text-end">Video Hrs</th>
                 </tr>
               </thead>
               <tbody>
@@ -507,11 +556,13 @@ const OverallCallHistoryPage = () => {
                       <td className="text-end">{entry?.chat ?? 0}</td>
                       <td className="text-end">{entry?.audio ?? 0}</td>
                       <td className="text-end">{entry?.video ?? 0}</td>
+                      <td className="text-end">{formatHoursShort(entry?.audioSeconds)}</td>
+                      <td className="text-end">{formatHoursShort(entry?.videoSeconds)}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center py-4">
+                    <td colSpan="7" className="text-center py-4">
                       No day wise counts found
                     </td>
                   </tr>
@@ -534,6 +585,8 @@ const OverallCallHistoryPage = () => {
                   <th className="text-end">Chat</th>
                   <th className="text-end">Audio</th>
                   <th className="text-end">Video</th>
+                  <th className="text-end">Audio Hrs</th>
+                  <th className="text-end">Video Hrs</th>
                 </tr>
               </thead>
               <tbody>
@@ -545,11 +598,13 @@ const OverallCallHistoryPage = () => {
                       <td className="text-end">{entry?.chat ?? 0}</td>
                       <td className="text-end">{entry?.audio ?? 0}</td>
                       <td className="text-end">{entry?.video ?? 0}</td>
+                      <td className="text-end">{formatHoursShort(entry?.audioSeconds)}</td>
+                      <td className="text-end">{formatHoursShort(entry?.videoSeconds)}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center py-4">
+                    <td colSpan="7" className="text-center py-4">
                       No month wise counts found
                     </td>
                   </tr>

@@ -73,13 +73,13 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
             <div>
               <h1 className="fw-bold">{formattedCurrentCount}</h1>
 
-              {difference > 0 && (
+              {!info.hideDifference && difference > 0 && (
                 <p className="text-success fw-semibold mb-1">
                   {formattedDifference} since last visit
                 </p>
               )}
 
-              {difference < 0 && (
+              {!info.hideDifference && difference < 0 && (
                 <p className="text-danger fw-semibold mb-1">
                   -{formattedDifference.replace(/^\+/, "")} since last visit
                 </p>

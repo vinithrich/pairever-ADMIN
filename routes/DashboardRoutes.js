@@ -42,7 +42,13 @@ export const DashboardMenu = [
     link: "/dashboard",
     accessKey: "dashboard",
   },
-
+  {
+    id: uuid(),
+    title: "App Reports",
+    icon: "pie-chart",
+    link: "/app-reports",
+    accessKey: "reports",
+  },
 
   {
     id: uuid(),
@@ -51,12 +57,25 @@ export const DashboardMenu = [
     link: "/user-management",
     accessKey: "userManagement",
   },
-
+ {
+    id: uuid(),
+    title: "Multi-App Users",
+    icon: "users",
+    link: "/user-management/multi-app-users",
+    accessKey: "userManagement",
+  },
   {
     id: uuid(),
     title: "Staff Management",
     icon: "briefcase",
     link: "/staff-management",
+    accessKey: "staffManagement",
+  },
+    {
+    id: uuid(),
+    title: "Online Staff",
+    icon: "users",
+    link: "/online-staff",
     accessKey: "staffManagement",
   },
   {
