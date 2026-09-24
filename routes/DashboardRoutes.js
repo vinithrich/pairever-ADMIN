@@ -63,6 +63,10 @@ export const DashboardMenu = [
     icon: "users",
     link: "/user-management/multi-app-users",
     accessKey: "userManagement",
+    // Only listed for these apps. The page reports users who appear in more than
+    // one app, which is a PairEver-side view; it is the same list whichever app
+    // you are in, so it is hidden everywhere else.
+    apps: ["0"],
   },
   {
     id: uuid(),
@@ -70,6 +74,13 @@ export const DashboardMenu = [
     icon: "briefcase",
     link: "/staff-management",
     accessKey: "staffManagement",
+  },
+    {
+    id: uuid(),
+    title: "Deposit History",
+    icon: "briefcase",
+    link: "/deposit-history",
+    accessKey: "depositHistory",
   },
     {
     id: uuid(),
@@ -123,13 +134,7 @@ export const DashboardMenu = [
     accessKey: "subAdminManagement",
   },
 
-  {
-    id: uuid(),
-    title: "Deposit History",
-    icon: "briefcase",
-    link: "/deposit-history",
-    accessKey: "depositHistory",
-  },
+
   {
     id: uuid(),
     title: "Referral Histories",

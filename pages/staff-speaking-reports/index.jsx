@@ -1,14 +1,10 @@
 import { PageHeading } from "@/widgets";
 import Link from "next/link";
 import TablePagination from "@/components/TablePagination";
-import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
-import {
-  GetOverallCallHistoryApi,
-} from "@/helper/Redux/ReduxThunk/Homepage";
-import { sortRows } from "@/helper/tableSort";
+import apiHelper from "@/helper/apiHelper";
 import { useRouter } from "next/router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Badge,
   Button,
@@ -22,282 +18,154 @@ import {
   Spinner,
   Table,
 } from "react-bootstrap";
-import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 
-const FETCH_LIMIT = 10000;
-const PAGE_LIMIT = 10;
+const PAGE_LIMIT = 20;
+
+const PERIODS = [
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "week", label: "This Week" },
+  { key: "month", label: "This Month" },
+  { key: "custom", label: "Custom" },
+  { key: "all", label: "All Time" },
+];
+
+const GRANULARITIES = [
+  { key: "day", label: "Daily" },
+  { key: "week", label: "Weekly" },
+  { key: "month", label: "Monthly" },
+];
 
 const DEFAULT_FILTERS = {
+  period: "today",
   callType: "all",
   staffMemberID: "",
   fromDate: "",
   toDate: "",
+  granularity: "day",
 };
 
-const formatAmount = (value) => ` ${(Number(value) || 0).toFixed(2)}`;
+const nf = new Intl.NumberFormat("en-IN");
 
+const formatAmount = (value) => `₹${(Number(value) || 0).toFixed(2)}`;
+
+// Seconds -> "2h 43m 11s". Hours are shown only once there are any, so a short
+// call does not read as "0h 0m 12s".
 const formatDuration = (value) => {
-  const totalSeconds = Math.max(0, Number(value) || 0);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const total = Math.max(Math.round(Number(value) || 0), 0);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
 
-  const parts = [];
-  if (hours) parts.push(`${hours}h`);
-  if (minutes || hours) parts.push(`${minutes}m`);
-  parts.push(`${seconds}s`);
-
-  return parts.join(" ");
+  if (hours) return `${hours}h ${minutes}m ${seconds}s`;
+  if (minutes) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
 };
 
-const getStaffKey = (call) =>
-  call?.staffId || call?.staffMemberID || call?.staffPhone || "unknown";
-
-const getDateRange = (fromDate, toDate) => {
-  const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
-  const to = toDate ? new Date(`${toDate}T23:59:59.999`) : null;
-
-  return { from, to };
-};
-
-const isCallInRange = (call, fromDate, toDate) => {
-  const createdAt = new Date(call?.createdAt || call?.startedAt || "");
-
-  if (Number.isNaN(createdAt.getTime())) {
-    return false;
+// "2026-W39" -> "Week 39, 2026"; "2026-09" -> "September 2026"; a date is left
+// as a readable day.
+const formatBucket = (bucket, granularity) => {
+  const value = String(bucket || "");
+  if (granularity === "week") {
+    const [year, week] = value.split("-W");
+    return `Week ${week}, ${year}`;
   }
-
-  const { from, to } = getDateRange(fromDate, toDate);
-
-  if (from && createdAt < from) {
-    return false;
+  if (granularity === "month") {
+    const [year, month] = value.split("-");
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   }
-
-  if (to && createdAt > to) {
-    return false;
-  }
-
-  return true;
-};
-
-const matchesCallType = (call, callType) =>
-  callType === "all" ||
-  String(call?.callType || "").toLowerCase() === callType;
-
-const calculateStaffEarning = (call) => {
-  const duration = Number(call?.callDuration) || 0;
-  const minimumDuration = duration > 0 ? Math.max(duration, 60) : 0;
-  const callType = String(call?.callType || "").toLowerCase();
-
-  if (callType === "audio") {
-    return (minimumDuration / 60) * 5;
-  }
-
-  if (callType === "video") {
-    return (minimumDuration / 60) * 10;
-  }
-
-  if (callType === "chat") {
-    return 1.5;
-  }
-
-  return 0;
-};
-
-const buildStaffSpeakingRows = (history) => {
-  const staffMap = new Map();
-
-  history.forEach((call) => {
-    const key = getStaffKey(call);
-    const previous = staffMap.get(key) || {
-      staffId: call?.staffId || "",
-      staffName: call?.staffName || "Unknown",
-      staffPhone: call?.staffPhone || "-",
-      staffEmail: call?.staffEmail || "-",
-      staffImage: call?.staffImage || "",
-      staffMemberID: call?.staffMemberID || "-",
-      totalCalls: 0,
-      totalDuration: 0,
-      chat: 0,
-      audio: 0,
-      video: 0,
-      staffEarned: 0,
-    };
-
-    const callType = String(call?.callType || "").toLowerCase();
-    const duration = Number(call?.callDuration) || 0;
-
-    previous.totalCalls += 1;
-    previous.totalDuration += duration;
-    previous.staffEarned += Number(call?.staffEarned) || 0;
-
-    if (callType === "chat") previous.chat += 1;
-    if (callType === "audio") previous.audio += 1;
-    if (callType === "video") previous.video += 1;
-
-    staffMap.set(key, previous);
-  });
-
-  return Array.from(staffMap.values()).sort(
-    (a, b) => b.totalDuration - a.totalDuration || b.totalCalls - a.totalCalls
-  );
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+      });
 };
 
 const StaffSpeakingReportsPage = () => {
   const router = useRouter();
-  const dispatch = useDispatch();
 
-  const [history, setHistory] = useState([]);
-  const [counts, setCounts] = useState({
-    total: 0,
-    chat: 0,
-    audio: 0,
-    video: 0,
-  });
+  const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [debouncedFilters, setDebouncedFilters] = useState(DEFAULT_FILTERS);
   const [currentPage, setCurrentPage] = useUrlPageState();
-  const [sortConfig, setSortConfig] = useState({
-    key: "totalDuration",
-    direction: "desc",
-  });
+
+  // Responses can land out of order when filters change quickly; only the newest
+  // request is allowed to write state.
+  const requestRef = useRef(0);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
+    const timer = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
       setCurrentPage(1);
     }, 400);
-
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeout(timer);
   }, [searchInput, setCurrentPage]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      const nextFilters = {
-        ...filters,
-        staffMemberID: filters.staffMemberID.trim(),
-      };
-
-      setDebouncedFilters((previousFilters) =>
-        previousFilters.callType === nextFilters.callType &&
-        previousFilters.staffMemberID === nextFilters.staffMemberID &&
-        previousFilters.fromDate === nextFilters.fromDate &&
-        previousFilters.toDate === nextFilters.toDate
-          ? previousFilters
-          : nextFilters
-      );
+    const timer = setTimeout(() => {
+      setDebouncedFilters(filters);
       setCurrentPage(1);
     }, 400);
-
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeout(timer);
   }, [filters, setCurrentPage]);
 
-  const timezone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata",
-    []
-  );
-
   const fetchReport = useCallback(async () => {
+    const active = debouncedFilters;
+    const requestId = ++requestRef.current;
     setIsLoading(true);
-    const activeFilters = debouncedFilters;
 
-    const params = {
-      page: 1,
-      limit: 100000,
-      timezone,
-    };
+    const params = new URLSearchParams({
+      period: active.period,
+      granularity: active.granularity,
+      page: String(currentPage),
+      limit: String(PAGE_LIMIT),
+    });
 
-    if (activeFilters.fromDate) {
-      params.fromDate = activeFilters.fromDate;
-      params.startDate = activeFilters.fromDate;
+    // A custom range is the only period that carries dates; sending them with a
+    // preset would be ignored anyway and just muddies the cache key.
+    if (active.period === "custom") {
+      if (active.fromDate) params.set("from", active.fromDate);
+      if (active.toDate) params.set("to", active.toDate);
     }
-    if (activeFilters.toDate) {
-      params.toDate = activeFilters.toDate;
-      params.endDate = activeFilters.toDate;
+    if (active.callType && active.callType !== "all") params.set("callType", active.callType);
+    if (active.staffMemberID) params.set("staffMemberID", active.staffMemberID.trim());
+    if (debouncedSearch) params.set("search", debouncedSearch);
+
+    try {
+      const resp = await apiHelper.getRequest(`staff-speaking-report?${params.toString()}`);
+      if (requestId !== requestRef.current) return;
+
+      if (resp?.status) {
+        setReport(resp.data || null);
+      } else {
+        setReport(null);
+        Notiflix.Notify.failure(resp?.message || "Failed to fetch staff speaking reports");
+      }
+    } finally {
+      if (requestId === requestRef.current) setIsLoading(false);
     }
-    if (activeFilters.callType && activeFilters.callType !== "all") {
-      params.callType = activeFilters.callType;
-    }
-
-    await dispatch(
-      GetOverallCallHistoryApi(params, (resp) => {
-        const isSuccess = Boolean(resp?.success ?? resp?.status);
-
-        if (isSuccess) {
-          const list = Array.isArray(resp?.data) ? resp.data : [];
-
-          const memberFilter = activeFilters.staffMemberID.toLowerCase();
-          const filteredList = memberFilter
-            ? list.filter((call) =>
-                String(call?.staffMemberID || "").toLowerCase().includes(memberFilter)
-              )
-            : list;
-
-          const searchFilter = debouncedSearch.toLowerCase();
-          const searchedList = searchFilter
-            ? filteredList.filter((call) =>
-                String(call?.staffName || "").toLowerCase().includes(searchFilter) ||
-                String(call?.staffPhone || "").toLowerCase().includes(searchFilter) ||
-                String(call?.staffMemberID || "").toLowerCase().includes(searchFilter)
-              )
-            : filteredList;
-
-          // Inject properties needed for the speaking row summary details
-          const nextHistory = searchedList.map((call) => ({
-            ...call,
-            staffId: call?.staffId || "",
-            staffName: call?.staffName || "Unknown",
-            staffPhone: call?.staffPhone || "-",
-            staffEmail: call?.staffEmail || "-",
-            staffImage: call?.staffImage || "",
-            staffMemberID: call?.staffMemberID || "-",
-            staffEarned: Number(call?.staffEarned ?? call?.staffEarnedAmount) || calculateStaffEarning(call),
-          }));
-
-          setHistory(nextHistory);
-
-          const nextCounts = nextHistory.reduce(
-            (acc, call) => {
-              const callType = String(call?.callType || "").toLowerCase();
-
-              acc.total += 1;
-              if (callType === "chat") acc.chat += 1;
-              if (callType === "audio") acc.audio += 1;
-              if (callType === "video") acc.video += 1;
-
-              return acc;
-            },
-            { total: 0, chat: 0, audio: 0, video: 0 }
-          );
-
-          setCounts(nextCounts);
-        } else {
-          setHistory([]);
-          setCounts({ total: 0, chat: 0, audio: 0, video: 0 });
-          Notiflix.Notify.failure(
-            resp?.message || "Failed to fetch staff speaking reports"
-          );
-        }
-
-        setIsLoading(false);
-      })
-    );
-  }, [debouncedFilters, debouncedSearch, dispatch, timezone]);
+  }, [currentPage, debouncedFilters, debouncedSearch]);
 
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
 
   const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1);
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      // Picking a date is what the Custom period is for, so choosing one selects
+      // it rather than silently doing nothing.
+      if ((key === "fromDate" || key === "toDate") && value) next.period = "custom";
+      return next;
+    });
   };
 
   const clearFilters = () => {
@@ -308,69 +176,35 @@ const StaffSpeakingReportsPage = () => {
     setCurrentPage(1);
   };
 
-  const handleSort = (key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction:
-        prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
-
-  const speakingRows = useMemo(() => buildStaffSpeakingRows(history), [history]);
-
-  const sortedRows = useMemo(() => {
-    const getValue = {
-      serialNumber: (_, index) => index + 1,
-      staffName: (staff) => staff.staffName || "",
-      staffMemberID: (staff) => staff.staffMemberID || "",
-      totalCalls: (staff) => staff.totalCalls || 0,
-      totalDuration: (staff) => staff.totalDuration || 0,
-      chat: (staff) => staff.chat || 0,
-      audio: (staff) => staff.audio || 0,
-      video: (staff) => staff.video || 0,
-      staffEarned: (staff) => staff.staffEarned || 0,
-    };
-
-    return sortRows(
-      speakingRows.map((staff, index) => ({ ...staff, __index: index })),
-      {
-        ...sortConfig,
-        getValue: (staff) =>
-          getValue[sortConfig.key]?.(staff, staff.__index) ?? "",
-      }
-    );
-  }, [speakingRows, sortConfig]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_LIMIT));
-  const pageStart = (currentPage - 1) * PAGE_LIMIT;
-  const paginatedRows = sortedRows.slice(pageStart, pageStart + PAGE_LIMIT);
-
-  const topStaff = sortedRows[0];
-  const totalDuration = speakingRows.reduce(
-    (total, staff) => total + staff.totalDuration,
-    0
-  );
+  const totals = report?.totals;
+  const rows = report?.rows || [];
+  const buckets = report?.buckets || [];
+  const granularity = report?.granularity || filters.granularity;
+  const totalPages = report?.pagination?.totalPages || 1;
+  const topStaff = currentPage === 1 ? rows[0] : null;
 
   const statCards = [
     {
       label: "Total Calls",
-      value: counts.total,
-      subtext: "Matching current filters",
+      value: nf.format(totals?.calls || 0),
+      subtext: report?.period?.label || "Matching current filters",
     },
     {
       label: "Speaking Time",
-      value: formatDuration(totalDuration),
-      subtext: "Loaded staff duration",
+      value: formatDuration(totals?.seconds || 0),
+      subtext: "Every matching call, not a sample",
     },
     {
       label: "Active Staff",
-      value: speakingRows.length,
-      subtext: "Staff with call activity",
+      value: nf.format(totals?.activeStaff || 0),
+      subtext: `Avg ${formatDuration(totals?.averageSecondsPerStaff || 0)} each`,
     },
     {
-      label: "Top Staff",
-      value: topStaff?.staffName || "-",
-      subtext: topStaff ? formatDuration(topStaff.totalDuration) : "No data",
+      label: "Staff Earned",
+      value: formatAmount(totals?.earned || 0),
+      subtext: `${nf.format(totals?.audio?.calls || 0)} audio · ${nf.format(
+        totals?.video?.calls || 0
+      )} video · ${nf.format(totals?.chat?.calls || 0)} chat`,
     },
   ];
 
@@ -390,9 +224,7 @@ const StaffSpeakingReportsPage = () => {
             {statCards.map((stat) => (
               <Card className="support-stat-card" key={stat.label}>
                 <p className="support-stat-label">{stat.label}</p>
-                <h3 className="support-stat-value">
-                  {isLoading ? "-" : stat.value}
-                </h3>
+                <h3 className="support-stat-value">{isLoading && !report ? "-" : stat.value}</h3>
                 <p className="support-stat-subtext">{stat.subtext}</p>
               </Card>
             ))}
@@ -402,27 +234,59 @@ const StaffSpeakingReportsPage = () => {
 
       <Card className="mt-4">
         <Card.Body>
-          <Form className="d-flex flex-wrap align-items-end gap-3">
-            <div>
-              <Form.Label className="fw-bold">Search</Form.Label>
+          <Row className="g-3 align-items-end">
+            <Col xs={12} lg={7}>
+              <Form.Label className="fw-bold small mb-1">Period</Form.Label>
+              <div className="d-flex flex-wrap gap-2">
+                {PERIODS.map((period) => (
+                  <Button
+                    key={period.key}
+                    size="sm"
+                    variant={filters.period === period.key ? "primary" : "outline-primary"}
+                    onClick={() => handleFilterChange("period", period.key)}
+                  >
+                    {period.label}
+                  </Button>
+                ))}
+              </div>
+            </Col>
+
+            <Col xs={12} lg={5}>
+              <Form.Label className="fw-bold small mb-1">Breakdown</Form.Label>
+              <ButtonGroup className="d-flex">
+                {GRANULARITIES.map((item) => (
+                  <Button
+                    key={item.key}
+                    size="sm"
+                    variant={
+                      filters.granularity === item.key ? "secondary" : "outline-secondary"
+                    }
+                    onClick={() => handleFilterChange("granularity", item.key)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </ButtonGroup>
+            </Col>
+
+            <Col xs={12} md={6} lg={3}>
+              <Form.Label className="fw-bold small mb-1">Search</Form.Label>
               <Form.Control
                 type="search"
                 placeholder="Staff name, phone, member ID"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
               />
-            </div>
+            </Col>
 
-            <div>
-              <Form.Label className="fw-bold">Call Type</Form.Label>
+            <Col xs={12} md={6} lg={3}>
+              <Form.Label className="fw-bold small mb-1">Call Type</Form.Label>
               <ButtonGroup className="d-flex">
                 {["all", "chat", "audio", "video"].map((type) => (
                   <Button
                     key={type}
-                    type="button"
-                    variant={
-                      filters.callType === type ? "primary" : "outline-primary"
-                    }
+                    size="sm"
+                    variant={filters.callType === type ? "primary" : "outline-primary"}
                     className="text-capitalize"
                     onClick={() => handleFilterChange("callType", type)}
                   >
@@ -430,52 +294,128 @@ const StaffSpeakingReportsPage = () => {
                   </Button>
                 ))}
               </ButtonGroup>
-            </div>
+            </Col>
 
-            <div>
-              <Form.Label className="fw-bold">Staff Member ID</Form.Label>
+            <Col xs={6} md={4} lg={2}>
+              <Form.Label className="fw-bold small mb-1">Staff Member ID</Form.Label>
               <Form.Control
                 placeholder="EVER000..."
                 value={filters.staffMemberID}
-                onChange={(event) =>
-                  handleFilterChange("staffMemberID", event.target.value)
-                }
+                onChange={(event) => handleFilterChange("staffMemberID", event.target.value)}
               />
-            </div>
+            </Col>
 
-            <div>
-              <Form.Label className="fw-bold">From</Form.Label>
+            <Col xs={6} md={4} lg={2}>
+              <Form.Label className="fw-bold small mb-1">From</Form.Label>
               <Form.Control
                 type="date"
                 value={filters.fromDate}
-                onChange={(event) =>
-                  handleFilterChange("fromDate", event.target.value)
-                }
+                max={filters.toDate || undefined}
+                onChange={(event) => handleFilterChange("fromDate", event.target.value)}
               />
-            </div>
+            </Col>
 
-            <div>
-              <Form.Label className="fw-bold">To</Form.Label>
+            <Col xs={6} md={4} lg={2}>
+              <Form.Label className="fw-bold small mb-1">To</Form.Label>
               <Form.Control
                 type="date"
                 value={filters.toDate}
-                onChange={(event) =>
-                  handleFilterChange("toDate", event.target.value)
-                }
+                min={filters.fromDate || undefined}
+                onChange={(event) => handleFilterChange("toDate", event.target.value)}
               />
-            </div>
+            </Col>
 
-            <Button variant="outline-secondary" onClick={clearFilters}>
-              Clear
-            </Button>
-            <Button variant="outline-primary" onClick={fetchReport}>
-              Refresh
-            </Button>
-          </Form>
+            <Col xs={12} className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <span className="text-muted small">
+                {report?.period?.label ? `Showing ${report.period.label}` : ""}
+                {isLoading && <Spinner animation="border" size="sm" className="ms-2" />}
+              </span>
+              <div className="d-flex gap-2">
+                <Button variant="outline-secondary" size="sm" onClick={clearFilters}>
+                  Clear
+                </Button>
+                <Button variant="outline-primary" size="sm" onClick={fetchReport} disabled={isLoading}>
+                  Refresh
+                </Button>
+              </div>
+            </Col>
+          </Row>
         </Card.Body>
       </Card>
 
-      <Row>
+      {/* ---------------- Day / week / month breakdown ---------------- */}
+      <Card className="mt-4">
+        <Card.Body className="pb-0">
+          <h4 className="mb-1">
+            {GRANULARITIES.find((g) => g.key === granularity)?.label} breakdown
+          </h4>
+          <p className="text-muted mb-0">
+            Every call in {report?.period?.label || "this period"}, grouped by{" "}
+            {granularity}. Times are IST.
+          </p>
+        </Card.Body>
+
+        <Table responsive hover className="text-nowrap mb-0 mt-3">
+          <thead className="table-light">
+            <tr>
+              <th>{granularity === "day" ? "Date" : granularity === "week" ? "Week" : "Month"}</th>
+              <th className="text-end">Calls</th>
+              <th className="text-end">Speaking Time</th>
+              <th className="text-end">Active Staff</th>
+              <th className="text-end">Audio</th>
+              <th className="text-end">Video</th>
+              <th className="text-end">Chat</th>
+              <th className="text-end">Earned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && !report ? (
+              <tr>
+                <td colSpan="8" className="text-center py-4">
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Building breakdown...
+                </td>
+              </tr>
+            ) : buckets.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-4">
+                  No calls in this period
+                </td>
+              </tr>
+            ) : (
+              buckets.map((bucket) => (
+                <tr key={bucket.bucket}>
+                  <td className="fw-semibold">{formatBucket(bucket.bucket, granularity)}</td>
+                  <td className="text-end">{nf.format(bucket.calls)}</td>
+                  <td className="text-end">{formatDuration(bucket.seconds)}</td>
+                  <td className="text-end">{nf.format(bucket.activeStaff)}</td>
+                  <td className="text-end">{nf.format(bucket.audio.calls)}</td>
+                  <td className="text-end">{nf.format(bucket.video.calls)}</td>
+                  <td className="text-end">{nf.format(bucket.chat.calls)}</td>
+                  <td className="text-end text-success">{formatAmount(bucket.earned)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          {buckets.length > 0 && totals && (
+            <tfoot className="table-light fw-bold">
+              <tr>
+                <td>Total</td>
+                <td className="text-end">{nf.format(totals.calls)}</td>
+                <td className="text-end">{formatDuration(totals.seconds)}</td>
+                <td className="text-end">{nf.format(totals.activeStaff)}</td>
+                <td className="text-end">{nf.format(totals.audio.calls)}</td>
+                <td className="text-end">{nf.format(totals.video.calls)}</td>
+                <td className="text-end">{nf.format(totals.chat.calls)}</td>
+                <td className="text-end">{formatAmount(totals.earned)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </Table>
+      </Card>
+
+      {/* ---------------- Staff ranking ---------------- */}
+      <Row className="mt-4">
         <Col xs={12}>
           <Card>
             <Card.Body className="pb-0">
@@ -483,141 +423,83 @@ const StaffSpeakingReportsPage = () => {
                 <div>
                   <h4 className="mb-1">Highest Speaking List</h4>
                   <p className="text-muted mb-0">
-                    Showing page {currentPage} of {totalPages},{" "}
-                    {sortedRows.length} staff
+                    Page {currentPage} of {totalPages} · {nf.format(totals?.activeStaff || 0)} staff
+                    with call activity
                   </p>
                 </div>
-                <Badge bg="secondary">Fetched limit: {FETCH_LIMIT}</Badge>
+                {topStaff && (
+                  <Badge bg="success">
+                    Top: {topStaff.name} — {formatDuration(topStaff.seconds)}
+                  </Badge>
+                )}
               </div>
             </Card.Body>
 
             <Table responsive hover className="text-nowrap mb-0 mt-3">
               <thead className="table-light">
                 <tr>
-                  <th>
-                    <SortableHeader
-                      label="#"
-                      sortKey="serialNumber"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Staff"
-                      sortKey="staffName"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Member ID"
-                      sortKey="staffMemberID"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Total Calls"
-                      sortKey="totalCalls"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Speaking Time"
-                      sortKey="totalDuration"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Chat"
-                      sortKey="chat"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Audio"
-                      sortKey="audio"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Video"
-                      sortKey="video"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
-                  <th>
-                    <SortableHeader
-                      label="Earned"
-                      sortKey="staffEarned"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                    />
-                  </th>
+                  <th>#</th>
+                  <th>Staff</th>
+                  <th>Member ID</th>
+                  <th className="text-end">Total Calls</th>
+                  <th className="text-end">Speaking Time</th>
+                  <th className="text-end">Chat</th>
+                  <th className="text-end">Audio</th>
+                  <th className="text-end">Video</th>
+                  <th className="text-end">Earned</th>
                 </tr>
               </thead>
               <tbody>
-                {isLoading ? (
+                {isLoading && !report ? (
                   <tr>
                     <td colSpan="9" className="text-center py-5">
                       <Spinner animation="border" size="sm" className="me-2" />
                       Loading staff speaking reports...
                     </td>
                   </tr>
-                ) : paginatedRows.length > 0 ? (
-                  paginatedRows.map((staff, index) => (
-                    <tr key={staff.staffId || staff.staffMemberID || index}>
-                      <td>{pageStart + index + 1}</td>
+                ) : rows.length > 0 ? (
+                  rows.map((staff) => (
+                    <tr key={staff.staffId || staff.memberID}>
+                      <td>{staff.rank}</td>
                       <td>
                         <div className="d-flex align-items-center gap-2">
                           <Image
-                            src={staff.staffImage || "/images/avatar/avatar.jpg"}
-                            alt={staff.staffName}
+                            src={staff.image || "/images/avatar/avatar.jpg"}
+                            alt={staff.name}
                             roundedCircle
-                            style={{
-                              width: "40px",
-                              height: "40px",
-                              objectFit: "cover",
-                            }}
+                            style={{ width: "40px", height: "40px", objectFit: "cover" }}
                           />
                           <div className="support-ticket-summary">
-                            {staff.staffId ? (
+                            {staff.staffId && staff.exists ? (
                               <Link
                                 href={`/staff-management/${staff.staffId}`}
                                 className="text-decoration-none fw-semibold"
                               >
-                                {staff.staffName}
+                                {staff.name}
                               </Link>
                             ) : (
-                              <strong>{staff.staffName}</strong>
+                              <strong>{staff.name}</strong>
                             )}
                             <span className="text-muted small">
-                              {staff.staffPhone}
+                              {staff.phone || "-"}
+                              {/* The calls and the earnings are real even when the
+                                  staff record is gone, so the row stays. */}
+                              {!staff.exists && (
+                                <Badge bg="secondary" className="ms-2 fw-normal">
+                                  removed
+                                </Badge>
+                              )}
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td>{staff.staffMemberID}</td>
-                      <td>{staff.totalCalls}</td>
-                      <td>{formatDuration(staff.totalDuration)}</td>
-                      <td>{staff.chat}</td>
-                      <td>{staff.audio}</td>
-                      <td>{staff.video}</td>
-                      <td className="text-success">
-                        {formatAmount(staff.staffEarned)}
-                      </td>
+                      <td>{staff.memberID || "-"}</td>
+                      <td className="text-end">{nf.format(staff.calls)}</td>
+                      <td className="text-end">{formatDuration(staff.seconds)}</td>
+                      <td className="text-end">{nf.format(staff.chat.calls)}</td>
+                      <td className="text-end">{nf.format(staff.audio.calls)}</td>
+                      <td className="text-end">{nf.format(staff.video.calls)}</td>
+                      <td className="text-end text-success">{formatAmount(staff.earned)}</td>
                     </tr>
                   ))
                 ) : (
@@ -634,10 +516,7 @@ const StaffSpeakingReportsPage = () => {
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={(page) => {
-                if (page < 1 || page > totalPages || page === currentPage) {
-                  return;
-                }
-
+                if (page < 1 || page > totalPages || page === currentPage) return;
                 setCurrentPage(page);
               }}
             />

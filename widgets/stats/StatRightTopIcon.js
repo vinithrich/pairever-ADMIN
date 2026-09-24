@@ -2,7 +2,12 @@ import { useRouter } from "next/router";
 import { Card } from "react-bootstrap";
 import PropTypes from "prop-types";
 
-const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
+const StatRightTopIcon = ({
+  info,
+  dashboardcountdata,
+  previousCounts,
+  baselineLabel = "since last visit",
+}) => {
   const router = useRouter();
 
   const getValueByPath = (source, path) => {
@@ -41,7 +46,15 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
 
   const valuePaths = info.keyPaths || info.keyPath;
   const currentCount = getSafeNumber(getValueByPaths(dashboardcountdata, valuePaths));
-  const previousCount = getSafeNumber(getValueByPaths(previousCounts, valuePaths));
+  // A missing baseline is NOT zero. Treating it as zero made every card claim the
+  // whole figure was gained "since last visit" — e.g. "+220,760 since last visit"
+  // on a first load. Only compare when a real previous value was supplied.
+  const rawPrevious = previousCounts
+    ? getValueByPaths(previousCounts, valuePaths)
+    : undefined;
+  const hasBaseline =
+    rawPrevious !== undefined && rawPrevious !== null && rawPrevious !== "";
+  const previousCount = getSafeNumber(rawPrevious);
   const descriptionValue = info.descriptionPath
     ? getValueByPaths(dashboardcountdata, info.descriptionPath)
     : null;
@@ -52,9 +65,12 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
       : "");
   const difference = currentCount - previousCount;
   const formattedCurrentCount = `${info.prefix || ""}${currentCount.toLocaleString()}`;
-  const formattedDifference = `${difference > 0 ? "+" : ""}${info.prefix || ""}${Math.abs(
+  // Sign first, then the prefix: "+Rs 1,200" / "-Rs 1,200".
+  const formattedDifference = `${difference > 0 ? "+" : "-"}${info.prefix || ""}${Math.abs(
     difference
   ).toLocaleString()}`;
+  const showDifference =
+    hasBaseline && !info.hideDifference && difference !== 0;
 
   return (
     <div>
@@ -73,15 +89,16 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
             <div>
               <h1 className="fw-bold">{formattedCurrentCount}</h1>
 
-              {!info.hideDifference && difference > 0 && (
-                <p className="text-success fw-semibold mb-1">
-                  {formattedDifference} since last visit
-                </p>
-              )}
-
-              {!info.hideDifference && difference < 0 && (
-                <p className="text-danger fw-semibold mb-1">
-                  -{formattedDifference.replace(/^\+/, "")} since last visit
+              {showDifference && (
+                <p
+                  className={`fw-semibold mb-1 ${
+                    difference > 0 ? "text-success" : "text-danger"
+                  }`}
+                >
+                  {formattedDifference}{" "}
+                  <span className="fw-normal text-muted small">
+                    {baselineLabel}
+                  </span>
                 </p>
               )}
 
@@ -99,7 +116,9 @@ const StatRightTopIcon = ({ info, dashboardcountdata, previousCounts }) => {
 StatRightTopIcon.propTypes = {
   info: PropTypes.any.isRequired,
   dashboardcountdata: PropTypes.object.isRequired,
-  previousCounts: PropTypes.object.isRequired,
+  // Absent on a first visit, when there is nothing to compare against yet.
+  previousCounts: PropTypes.object,
+  baselineLabel: PropTypes.string,
 };
 
 export default StatRightTopIcon;

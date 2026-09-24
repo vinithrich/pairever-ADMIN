@@ -24,31 +24,30 @@ import 'simplebar-react/dist/simplebar.min.css';
 import { DashboardMenu } from "@/routes/DashboardRoutes";
 import { canAccessKey } from "@/helper/accessControl";
 import { useAuth } from "@/helper/Context/AuthContext";
+import { appLabel, readSelectedApp } from "@/helper/appName";
 
 const NavbarVertical = (props) => {
   const location = useRouter();
   const { user } = useAuth();
-  const [appTitle, setAppTitle] = useState("Pair Ever");
+  const [selectedApp, setSelectedApp] = useState("0");
   const [menuSearch, setMenuSearch] = useState("");
+  const appTitle = appLabel(selectedApp);
 
+  // Switch App writes to localStorage and router.push()es, so this re-reads on every
+  // navigation as well as on a change made in another tab.
   useEffect(() => {
-    const selectedApp = localStorage.getItem("selectedAdminApp");
-    if (selectedApp === "flamez" || selectedApp === "1") {
-      setAppTitle("Flamez");
-    } else if (selectedApp === "bonding" || selectedApp === "2") {
-      setAppTitle("Bonding");
-    } else if (selectedApp === "heylove" || selectedApp === "3") {
-      setAppTitle("Heylove");
-    } else if (selectedApp === "doly" || selectedApp === "4") {
-      setAppTitle("Doly");
-    } else if (selectedApp === "bestie" || selectedApp === "best" || selectedApp === "5") {
-      setAppTitle("Bestie");
-    } else if (selectedApp === "flirtfling" || selectedApp === "flirt fling" || selectedApp === "8") {
-      setAppTitle("Flirt Fling");
-    } else {
-      setAppTitle("Pair Ever");
-    }
-  }, []);
+    const sync = () => {
+      const next = readSelectedApp();
+      setSelectedApp((prev) => (prev === next ? prev : next));
+    };
+    sync();
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, [location.asPath]);
 
   const filterMenuByAccess = (items = []) =>
     items
@@ -64,6 +63,12 @@ const NavbarVertical = (props) => {
             ...item,
             children,
           };
+        }
+
+        // An item may also be limited to certain apps; one with no `apps` list
+        // shows everywhere, so existing entries are unaffected.
+        if (Array.isArray(item.apps) && !item.apps.includes(selectedApp)) {
+          return null;
         }
 
         return canAccessKey(user, item.accessKey) ? item : null;

@@ -15,6 +15,7 @@ import {
 import Notiflix from "notiflix";
 import { PageHeading } from "@/widgets";
 import apiHelper from "@/helper/apiHelper";
+import TablePagination from "@/components/TablePagination";
 import {
   DeleteCallGiftApi,
   GetCallGiftsApi,
@@ -214,6 +215,9 @@ const CallGiftsPage = () => {
   const [txnSummary, setTxnSummary] = useState(null);
   const [isTxnLoading, setIsTxnLoading] = useState(true);
   const [txnStatusFilter, setTxnStatusFilter] = useState("all");
+  const [txnPage, setTxnPage] = useState(1);
+  const [txnLimit, setTxnLimit] = useState(20);
+  const [txnPagination, setTxnPagination] = useState(null);
   const [updatingTxnId, setUpdatingTxnId] = useState("");
 
   // Shared confirm dialog: { title, body, confirmLabel, variant, onConfirm }.
@@ -285,26 +289,37 @@ const CallGiftsPage = () => {
   const loadTransactions = useCallback(async () => {
     setIsTxnLoading(true);
 
-    const query =
-      txnStatusFilter === "all"
-        ? "limit=20"
-        : `limit=20&payoutStatus=${txnStatusFilter}`;
+    const params = new URLSearchParams({
+      page: String(txnPage),
+      limit: String(txnLimit),
+    });
+    if (txnStatusFilter !== "all") {
+      params.set("payoutStatus", txnStatusFilter);
+    }
 
     await dispatch(
-      GetCallGiftTransactionsApi(query, (resp) => {
+      GetCallGiftTransactionsApi(params.toString(), (resp) => {
         if (resp?.status || resp?.success) {
           const rows = getRows(resp);
           setTransactions(Array.isArray(rows) ? rows : []);
           setTxnSummary(resp?.summary || null);
+          setTxnPagination(resp?.pagination || null);
         } else {
           setTransactions([]);
           setTxnSummary(null);
+          setTxnPagination(null);
         }
 
         setIsTxnLoading(false);
       })
     );
-  }, [dispatch, txnStatusFilter]);
+  }, [dispatch, txnStatusFilter, txnPage, txnLimit]);
+
+  // A filter or page-size change must restart at page 1 — staying on page 9 of a
+  // list that now has 2 pages would show an empty table.
+  useEffect(() => {
+    setTxnPage(1);
+  }, [txnStatusFilter, txnLimit]);
 
   useEffect(() => {
     loadGifts();
@@ -801,7 +816,21 @@ const CallGiftsPage = () => {
 
           <Card>
             <Card.Body className="d-flex align-items-center justify-content-between gap-3 pb-0">
-              <h4 className="mb-3">Gifts Sent &amp; Payouts</h4>
+              <div>
+                <h4 className="mb-1">
+                  Gifts Sent &amp; Payouts{" "}
+                  {txnPagination?.total ? (
+                    <Badge bg="primary">{txnPagination.total}</Badge>
+                  ) : null}
+                </h4>
+                {txnPagination?.total ? (
+                  <p className="text-muted small mb-3">
+                    Showing {(txnPagination.page - 1) * txnPagination.limit + 1}–
+                    {Math.min(txnPagination.page * txnPagination.limit, txnPagination.total)} of{" "}
+                    {txnPagination.total}
+                  </p>
+                ) : null}
+              </div>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <Form.Select
                   size="sm"
@@ -813,6 +842,18 @@ const CallGiftsPage = () => {
                   <option value="all">All statuses</option>
                   <option value="pending">Pending only</option>
                   <option value="paid">Paid only</option>
+                </Form.Select>
+                <Form.Select
+                  size="sm"
+                  style={{ width: "90px" }}
+                  value={txnLimit}
+                  onChange={(e) => setTxnLimit(Number(e.target.value))}
+                  disabled={isTxnLoading}
+                  aria-label="Rows per page"
+                >
+                  {[20, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
                 </Form.Select>
                 <Button
                   type="button"
@@ -924,6 +965,14 @@ const CallGiftsPage = () => {
                 )}
               </tbody>
             </Table>
+
+            {txnPagination?.totalPages > 1 && (
+              <TablePagination
+                currentPage={txnPagination.page}
+                totalPages={txnPagination.totalPages}
+                onPageChange={(page) => setTxnPage(page)}
+              />
+            )}
           </Card>
         </Col>
       </Row>

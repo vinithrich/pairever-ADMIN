@@ -622,7 +622,7 @@ const ManageInvoice = () => {
                         {(currentPage - 1) * leadsPerPage + i + 1}
                       </td>
                       <td>
-                        {user.userName && getUserDetailId(user) ? (
+                        {user.userName && getUserDetailId(user) && user.userExists !== false ? (
                           <Link
                             href={`/user-management/${getUserDetailId(user)}`}
                             className="text-decoration-none fw-semibold"
@@ -630,7 +630,19 @@ const ManageInvoice = () => {
                             {user.userName}
                           </Link>
                         ) : (
-                          user.userName || "-"
+                          <>
+                            {user.userName || "-"}
+                            {/* The payment is real even though the account is gone,
+                                so the row stays — only the dead link is dropped. */}
+                            {user.userExists === false && (
+                              <span
+                                className="badge bg-secondary ms-2"
+                                title="This user account has been deleted. The deposit is still counted."
+                              >
+                                Deleted user
+                              </span>
+                            )}
+                          </>
                         )}
                       </td>
                       <td>{user.userPhone || "-"}</td>

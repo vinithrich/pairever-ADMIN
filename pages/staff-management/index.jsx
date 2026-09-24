@@ -13,6 +13,7 @@ import {
   Button,
 } from "react-bootstrap";
 import { useDispatch } from "react-redux";
+import apiHelper from "@/helper/apiHelper";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
@@ -28,6 +29,25 @@ import {
 
 const formatAmount = (value) => (Number(value) || 0).toFixed(2);
 
+const nf = new Intl.NumberFormat("en-IN");
+
+// Every filter at its "no filter" value. Also what Clear resets to.
+const EMPTY_FILTERS = {
+  isApproved: "all",
+  status: "all",
+  isVerified: "all",
+  isChatEnabled: "all",
+  language: "all",
+  city: "all",
+  callType: "all",
+  fromDate: "",
+  toDate: "",
+  minEarnings: "",
+  maxEarnings: "",
+  sortBy: "createdAt",
+  order: "desc",
+};
+
 const ManageInvoice = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -35,6 +55,11 @@ const ManageInvoice = () => {
   const [userList, setUserList] = useState([]);
   const [currentPage, setCurrentPage] = useUrlPageState();
   const [searchQuery, setSearchQuery] = useState("");
+  // Typing fires one request per keystroke otherwise, against a 5.5k collection.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filterOptions, setFilterOptions] = useState(null);
+  const [totalStaff, setTotalStaff] = useState(0);
   const [leadsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [deletingStaffId, setDeletingStaffId] = useState("");
@@ -58,11 +83,20 @@ const ManageInvoice = () => {
   const handleGoBack = () => router.back();
 
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const GetStaffDetails = useCallback(async () => {
     const queryParams = {
-      search: searchQuery,
+      search: debouncedSearch,
       page: currentPage,
       limit: leadsPerPage,
+      // "all" and "" mean "do not filter", so they are never sent.
+      ...Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== "" && value !== "all")
+      ),
     };
 
     await dispatch(
@@ -70,23 +104,55 @@ const ManageInvoice = () => {
         if (resp?.status) {
           setUserList(resp.data || []);
           setTotalPages(resp.pagination?.totalPages || 1);
+          setTotalStaff(resp.pagination?.total || 0);
         } else {
           setUserList([]);
           setTotalPages(1);
+          setTotalStaff(0);
           Notiflix.Notify.failure(resp?.message || "Failed to fetch users");
         }
       })
     );
-  }, [currentPage, dispatch, leadsPerPage, searchQuery]);
+  }, [currentPage, debouncedSearch, dispatch, filters, leadsPerPage]);
 
   useEffect(() => {
     GetStaffDetails();
   }, [GetStaffDetails]);
 
+  // Dropdown values come from the data, so the list can never offer a language or
+  // city that matches nothing.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const resp = await apiHelper.getRequest("getStaffFilterOptions");
+      if (!cancelled && resp?.status) setFilterOptions(resp.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
+
+  const setFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setSearchQuery("");
+    setCurrentPage(1);
+  };
+
+  const activeFilterCount =
+    Object.entries(filters).filter(
+      ([key, value]) =>
+        !["sortBy", "order"].includes(key) && value !== "" && value !== "all"
+    ).length + (searchQuery.trim() ? 1 : 0);
 
   const paginate = (page) => {
     if (page < 1 || page > totalPages || page === currentPage) {
@@ -334,19 +400,203 @@ const ManageInvoice = () => {
       </div>
 
 
-      <div className="d-flex justify-content-between w-100">
-        <Form className="d-flex gap-3">
-          <div>
-            <Form.Label className="text-white fw-bold">Search</Form.Label>
-            <Form.Control
-              type="search"
-              placeholder="Search Name / Phone / Gender / Language"
-              value={searchQuery}
-              onChange={handleSearch}
-            />
+      <Card className="shadow-sm mb-4">
+        <Card.Body>
+          <Row className="g-3">
+            <Col xs={12} md={6} lg={4}>
+              <Form.Label className="fw-semibold small mb-1">Search</Form.Label>
+              <Form.Control
+                type="search"
+                placeholder="Name / Phone / Member ID / Language"
+                value={searchQuery}
+                onChange={handleSearch}
+              />
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Approval</Form.Label>
+              <Form.Select
+                value={filters.isApproved}
+                onChange={(e) => setFilter("isApproved", e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="0">
+                  Pending{filterOptions ? ` (${nf.format(filterOptions.approvals.pending)})` : ""}
+                </option>
+                <option value="1">
+                  Approved{filterOptions ? ` (${nf.format(filterOptions.approvals.approved)})` : ""}
+                </option>
+                <option value="2">
+                  Rejected{filterOptions ? ` (${nf.format(filterOptions.approvals.rejected)})` : ""}
+                </option>
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Presence</Form.Label>
+              <Form.Select
+                value={filters.status}
+                onChange={(e) => setFilter("status", e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="online">
+                  Online{filterOptions ? ` (${nf.format(filterOptions.presence.online)})` : ""}
+                </option>
+                <option value="busy">
+                  On a call{filterOptions ? ` (${nf.format(filterOptions.presence.busy)})` : ""}
+                </option>
+                <option value="offline">
+                  Offline{filterOptions ? ` (${nf.format(filterOptions.presence.offline)})` : ""}
+                </option>
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Verified</Form.Label>
+              <Form.Select
+                value={filters.isVerified}
+                onChange={(e) => setFilter("isVerified", e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="true">Verified</option>
+                <option value="false">Not verified</option>
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Chat</Form.Label>
+              <Form.Select
+                value={filters.isChatEnabled}
+                onChange={(e) => setFilter("isChatEnabled", e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="true">Chat enabled</option>
+                <option value="false">Chat disabled</option>
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Language</Form.Label>
+              <Form.Select
+                value={filters.language}
+                onChange={(e) => setFilter("language", e.target.value)}
+              >
+                <option value="all">All languages</option>
+                {(filterOptions?.languages || []).map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">City</Form.Label>
+              <Form.Select
+                value={filters.city}
+                onChange={(e) => setFilter("city", e.target.value)}
+              >
+                <option value="all">All cities</option>
+                {(filterOptions?.cities || []).map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Call type</Form.Label>
+              <Form.Select
+                value={filters.callType}
+                onChange={(e) => setFilter("callType", e.target.value)}
+              >
+                <option value="all">All call types</option>
+                {(filterOptions?.callTypes || []).map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </Form.Select>
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Joined from</Form.Label>
+              <Form.Control
+                type="date"
+                value={filters.fromDate}
+                max={filters.toDate || undefined}
+                onChange={(e) => setFilter("fromDate", e.target.value)}
+              />
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Joined to</Form.Label>
+              <Form.Control
+                type="date"
+                value={filters.toDate}
+                min={filters.fromDate || undefined}
+                onChange={(e) => setFilter("toDate", e.target.value)}
+              />
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Earned min</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                placeholder="0"
+                value={filters.minEarnings}
+                onChange={(e) => setFilter("minEarnings", e.target.value)}
+              />
+            </Col>
+
+            <Col xs={6} md={3} lg={2}>
+              <Form.Label className="fw-semibold small mb-1">Earned max</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                placeholder="Any"
+                value={filters.maxEarnings}
+                onChange={(e) => setFilter("maxEarnings", e.target.value)}
+              />
+            </Col>
+
+            <Col xs={12} md={6} lg={4}>
+              <Form.Label className="fw-semibold small mb-1">Sort by</Form.Label>
+              <div className="d-flex gap-2">
+                <Form.Select
+                  value={filters.sortBy}
+                  onChange={(e) => setFilter("sortBy", e.target.value)}
+                >
+                  <option value="createdAt">Joined date</option>
+                  <option value="earnings">Staff earned</option>
+                  <option value="name">Name</option>
+                  <option value="lastCall">Last call</option>
+                  <option value="lastSeen">Last seen</option>
+                </Form.Select>
+                <Form.Select
+                  style={{ maxWidth: 140 }}
+                  value={filters.order}
+                  onChange={(e) => setFilter("order", e.target.value)}
+                >
+                  <option value="desc">High to low</option>
+                  <option value="asc">Low to high</option>
+                </Form.Select>
+              </div>
+            </Col>
+          </Row>
+
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+            <div className="text-muted small">
+              {nf.format(totalStaff)} staff match
+              {activeFilterCount > 0 && ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} applied`}
+            </div>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={clearFilters}
+              disabled={activeFilterCount === 0}
+            >
+              Clear filters
+            </Button>
           </div>
-        </Form>
-      </div>
+        </Card.Body>
+      </Card>
 
 
       <Row className="mt-6">

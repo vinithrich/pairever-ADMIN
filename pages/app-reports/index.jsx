@@ -16,6 +16,7 @@ import Notiflix from "notiflix";
 import { PageHeading } from "@/widgets";
 import apiHelper from "@/helper/apiHelper";
 import TablePagination from "@/components/TablePagination";
+import { TrendChart, AppComparisonChart } from "@/components/ReportCharts";
 
 const PERIODS = [
   { key: "today", label: "Today" },
@@ -73,6 +74,12 @@ const AppReportsPage = () => {
   const [debouncedStaffSearch, setDebouncedStaffSearch] = useState("");
   const [isStaffRowsLoading, setIsStaffRowsLoading] = useState(false);
   const staffRequestRef = useRef(0);
+
+  const [series, setSeries] = useState(null);
+  const [isSeriesLoading, setIsSeriesLoading] = useState(true);
+
+  const [languages, setLanguages] = useState(null);
+  const [isLanguagesLoading, setIsLanguagesLoading] = useState(true);
 
   const [compare, setCompare] = useState(false);
   const [summary, setSummary] = useState(null);
@@ -165,9 +172,41 @@ const AppReportsPage = () => {
     setUserPage(1);
   }, [appName, query, segment]);
 
+  const loadSeries = useCallback(async () => {
+    setIsSeriesLoading(true);
+    try {
+      const params = new URLSearchParams(query);
+      params.set("appName", appName);
+      const resp = await apiHelper.getRequest(`app-report/series?${params.toString()}`);
+      setSeries(resp?.status ? resp.data : null);
+    } finally {
+      setIsSeriesLoading(false);
+    }
+  }, [appName, query]);
+
   useEffect(() => {
     loadReport();
   }, [loadReport]);
+
+  const loadLanguages = useCallback(async () => {
+    setIsLanguagesLoading(true);
+    try {
+      const params = new URLSearchParams(query);
+      params.set("appName", appName);
+      const resp = await apiHelper.getRequest(`app-report/languages?${params.toString()}`);
+      setLanguages(resp?.status ? resp.data : null);
+    } finally {
+      setIsLanguagesLoading(false);
+    }
+  }, [appName, query]);
+
+  useEffect(() => {
+    if (view === "users") loadSeries();
+  }, [view, loadSeries]);
+
+  useEffect(() => {
+    if (view === "users") loadLanguages();
+  }, [view, loadLanguages]);
 
   // Only fetch what the visible view needs — the hidden report should not be
   // issuing queries against a 300k-user collection in the background.
@@ -399,6 +438,33 @@ const AppReportsPage = () => {
         })}
       </Row>
 
+      {/* ---------------- Trend ---------------- */}
+      <Row className="g-3 mb-4">
+        <Col xs={12} xl={compare ? 7 : 12}>
+          <TrendChart
+            points={series?.points || []}
+            granularity={series?.granularity}
+            title={`${report?.app?.name || ""} — ${report?.period?.label || ""}`}
+            subtitle={
+              isSeriesLoading
+                ? "Loading..."
+                : series?.granularity === "hour"
+                  ? "By hour (IST)"
+                  : "By day (IST)"
+            }
+          />
+        </Col>
+        {compare && (
+          <Col xs={12} xl={5}>
+            <AppComparisonChart
+              rows={summary?.data || []}
+              title="Applications compared"
+              subtitle={report?.period?.label}
+            />
+          </Col>
+        )}
+      </Row>
+
       {/* ---------------- All-time context ---------------- */}
       <Card className="shadow-sm mb-4">
         <Card.Body className="d-flex flex-wrap gap-5 py-3">
@@ -415,12 +481,89 @@ const AppReportsPage = () => {
             <div className="fs-4 fw-bold">{nf.format(m.depositCoins || 0)}</div>
           </div>
           <div>
-            <div className="text-muted small">Paying share of callers</div>
-            <div className="fs-4 fw-bold">
-              {m.callingUsers
-                ? `${Math.round(((m.callingUsers - m.freeCallUsers) / m.callingUsers) * 100)}%`
-                : "-"}
+          
+          </div>
+        </Card.Body>
+      </Card>
+
+      {/* ---------------- Language breakdown ---------------- */}
+      <Card className="shadow-sm mb-4">
+        <Card.Body>
+          <div className="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+            <div>
+              <h5 className="mb-1">Users and deposits by language</h5>
+              <p className="text-muted small mb-0">
+                Users of each language, and what they deposited in{" "}
+                {report?.period?.label || "this period"}.
+              </p>
             </div>
+            {isLanguagesLoading && <Spinner animation="border" size="sm" />}
+          </div>
+
+          <div className="table-responsive">
+            <Table hover className="mb-0 align-middle text-nowrap">
+              <thead className="table-light">
+                <tr>
+                  <th>Language</th>
+                  <th className="text-end">Total Users</th>
+                  <th className="text-end">Joined</th>
+                  <th className="text-end">Verified</th>
+                  <th className="text-end">Deposit Users</th>
+                  <th className="text-end">Deposits</th>
+                  <th className="text-end">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLanguagesLoading && !languages ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-4">
+                      Building language report...
+                    </td>
+                  </tr>
+                ) : !languages?.rows?.length ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-4">
+                      No data
+                    </td>
+                  </tr>
+                ) : (
+                  languages.rows.map((row) => (
+                      <tr key={row.language} className={row.isDeleted ? "text-muted" : ""}>
+                        <td className="fw-semibold">
+                          {row.language}
+                          {row.isDeleted && (
+                            <span
+                              className="badge bg-secondary ms-2 fw-normal"
+                              title="These users deposited, then their account was deleted. The money is still counted; they have no language."
+                            >
+                              no account
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-end">{nf.format(row.totalUsers)}</td>
+                        <td className="text-end">{nf.format(row.joinedUsers)}</td>
+                        <td className="text-end">{nf.format(row.verifiedUsers)}</td>
+                        <td className="text-end">{nf.format(row.depositUsers)}</td>
+                        <td className="text-end">{nf.format(row.deposits)}</td>
+                        <td className="text-end fw-semibold">{money(row.depositAmount)}</td>
+                      </tr>
+                  ))
+                )}
+              </tbody>
+              {languages?.totals && (
+                <tfoot className="table-light fw-bold">
+                  <tr>
+                    <td>Total</td>
+                    <td className="text-end">{nf.format(languages.totals.totalUsers)}</td>
+                    <td className="text-end">{nf.format(languages.totals.joinedUsers)}</td>
+                    <td className="text-end">{nf.format(languages.totals.verifiedUsers)}</td>
+                    <td className="text-end">{nf.format(languages.totals.depositUsers)}</td>
+                    <td className="text-end">{nf.format(languages.totals.deposits)}</td>
+                    <td className="text-end">{money(languages.totals.depositAmount)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </Table>
           </div>
         </Card.Body>
       </Card>
