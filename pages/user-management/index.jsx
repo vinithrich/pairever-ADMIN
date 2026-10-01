@@ -16,6 +16,7 @@ import { useDispatch } from "react-redux";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
+import useResetPageOnChange from "@/hooks/useResetPageOnChange";
 import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
@@ -59,6 +60,7 @@ const ManageInvoice = () => {
   });
 
   const handleGoBack = () => router.back();
+  const resetPageOnSearchChange = useResetPageOnChange(setCurrentPage, searchQuery);
 
   useEffect(() => {
     if (router.isReady && router.query.appName) {
@@ -132,7 +134,7 @@ const ManageInvoice = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery.trim());
-      setCurrentPage(1);
+      resetPageOnSearchChange(searchQuery);
     }, 400);
 
     return () => clearTimeout(timeoutId);

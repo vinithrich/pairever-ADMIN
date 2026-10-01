@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import {
   Badge,
@@ -26,6 +27,30 @@ const newPrize = (type = "cash") => ({
   image: "",
   file: null,
 });
+
+// Name and member ID both open the staff record. Falls back to plain text when
+// the row has no staffId — a winner whose staff account was since deleted keeps
+// its place in a frozen period, and a dead link there would 404.
+const StaffCell = ({ staffId, name, memberID }) => {
+  const label = (
+    <>
+      <div className="fw-semibold">{name || "-"}</div>
+      <div className="text-muted small">{memberID || "-"}</div>
+    </>
+  );
+
+  if (!staffId) return label;
+
+  return (
+    <Link
+      href={`/staff-management/${staffId}`}
+      className="text-decoration-none text-reset"
+      title="Open staff details"
+    >
+      {label}
+    </Link>
+  );
+};
 
 const rupees = (value) =>
   `₹${(Number(value) || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -628,10 +653,11 @@ const LeaderboardPage = () => {
                   <td>
                     <div className="d-flex align-items-center gap-2">
                       <PrizeImage image={entry.image} size={36} />
-                      <div>
-                        <div className="fw-semibold">{entry.name || "-"}</div>
-                        <div className="text-muted small">{entry.memberID}</div>
-                      </div>
+                      <StaffCell
+                        staffId={entry.staffId}
+                        name={entry.name}
+                        memberID={entry.memberID}
+                      />
                     </div>
                   </td>
                   <td>{entry.minutes} min</td>
@@ -710,8 +736,11 @@ const LeaderboardPage = () => {
                         <tr key={key}>
                           <td className="fw-bold">#{winner.rank}</td>
                           <td>
-                            <div className="fw-semibold">{winner.staffName || "-"}</div>
-                            <div className="text-muted small">{winner.staffMemberID}</div>
+                            <StaffCell
+                              staffId={winner.staffId}
+                              name={winner.staffName}
+                              memberID={winner.staffMemberID}
+                            />
                           </td>
                           <td>{winner.minutes} min</td>
                           <td>

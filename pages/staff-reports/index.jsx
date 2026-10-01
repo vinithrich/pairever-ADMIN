@@ -21,6 +21,7 @@ import {
   getTotalPagesFromResponse,
 } from "@/helper/pagination";
 import useUrlPageState from "@/hooks/useUrlPageState";
+import useResetPageOnChange from "@/hooks/useResetPageOnChange";
 import {
   GetStaffReportByIdApi,
   GetStaffReportListApi,
@@ -82,11 +83,12 @@ const StaffReportsPage = () => {
   });
 
   const limit = 10;
+  const resetPageOnSearchChange = useResetPageOnChange(setCurrentPage, searchInput);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
-      setCurrentPage(1);
+      resetPageOnSearchChange(searchInput);
     }, 400);
 
     return () => clearTimeout(timeoutId);

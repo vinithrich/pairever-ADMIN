@@ -124,6 +124,26 @@ export const DashboardMenu = [
     link: "/leaderboard",
     accessKey: "leaderboard",
   },
+  {
+    id: uuid(),
+    title: "Night Call Bonus",
+    icon: "moon",
+    link: "/night-call-bonus",
+    accessKey: "nightCallBonus",
+    // One global configuration for every app, so it is listed once — under
+    // PairEver — rather than appearing seven times as if it were per-app.
+    apps: ["0"],
+  },
+  {
+    id: uuid(),
+    title: "Language Order",
+    icon: "globe",
+    link: "/language-order",
+    accessKey: "languageOrder",
+    // Configures EVERY app from one screen, so it is listed once — in PairEver —
+    // like Multi-App Users, rather than repeating per app.
+    apps: ["0"],
+  },
 
 
   {

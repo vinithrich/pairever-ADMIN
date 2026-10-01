@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import apiHelper from "@/helper/apiHelper";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
-import useUrlPageState from "@/hooks/useUrlPageState";
+import useUrlListState from "@/hooks/useUrlListState";
 import { sortRows } from "@/helper/tableSort";
 
 import Notiflix from "notiflix";
@@ -31,8 +31,12 @@ const formatAmount = (value) => (Number(value) || 0).toFixed(2);
 
 const nf = new Intl.NumberFormat("en-IN");
 
-// Every filter at its "no filter" value. Also what Clear resets to.
+// Every filter at its "no filter" value, plus the page and search. This is also
+// the shape held in the URL: anything at its default here is left out of the
+// address bar, and anything else is restored when you come back to the page.
 const EMPTY_FILTERS = {
+  page: 1,
+  search: "",
   isApproved: "all",
   status: "all",
   isVerified: "all",
@@ -53,11 +57,14 @@ const ManageInvoice = () => {
   const dispatch = useDispatch();
 
   const [userList, setUserList] = useState([]);
-  const [currentPage, setCurrentPage] = useUrlPageState();
-  const [searchQuery, setSearchQuery] = useState("");
-  // Typing fires one request per keystroke otherwise, against a 5.5k collection.
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  // Page, search and every filter live in the URL, so opening a staff member and
+  // pressing Back returns to the same filtered page instead of an unfiltered
+  // page 1.
+  const [view, setView] = useUrlListState(EMPTY_FILTERS);
+  const currentPage = view.page;
+  // The input is local and immediate; only the debounced value reaches the URL,
+  // so typing does not push a query string per keystroke.
+  const [searchQuery, setSearchQuery] = useState(view.search);
   const [filterOptions, setFilterOptions] = useState(null);
   const [totalStaff, setTotalStaff] = useState(0);
   const [leadsPerPage] = useState(10);
@@ -84,18 +91,24 @@ const ManageInvoice = () => {
 
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    const timer = setTimeout(() => {
+      const next = searchQuery.trim();
+      // Comparing against what is already stored means the mount run is a no-op,
+      // so a restored page is not reset to 1 the moment the page loads.
+      setView((previous) =>
+        previous.search === next ? previous : { search: next, page: 1 }
+      );
+    }, 400);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, setView]);
 
   const GetStaffDetails = useCallback(async () => {
     const queryParams = {
-      search: debouncedSearch,
-      page: currentPage,
       limit: leadsPerPage,
-      // "all" and "" mean "do not filter", so they are never sent.
+      // "all" and "" mean "do not filter", so they are never sent. `page` and
+      // `search` are part of this object too and pass through as-is.
       ...Object.fromEntries(
-        Object.entries(filters).filter(([, value]) => value !== "" && value !== "all")
+        Object.entries(view).filter(([, value]) => value !== "" && value !== "all")
       ),
     };
 
@@ -113,7 +126,7 @@ const ManageInvoice = () => {
         }
       })
     );
-  }, [currentPage, debouncedSearch, dispatch, filters, leadsPerPage]);
+  }, [dispatch, leadsPerPage, view]);
 
   useEffect(() => {
     GetStaffDetails();
@@ -133,25 +146,24 @@ const ManageInvoice = () => {
   }, []);
 
   const handleSearch = (e) => {
+    // The debounce above moves this into the URL and resets the page.
     setSearchQuery(e.target.value);
-    setCurrentPage(1);
   };
 
-  const setFilter = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-    setCurrentPage(1);
-  };
+  // One update, so the filter change and the page reset reach the URL together.
+  const setFilter = (key, value) => setView({ [key]: value, page: 1 });
 
   const clearFilters = () => {
-    setFilters(EMPTY_FILTERS);
     setSearchQuery("");
-    setCurrentPage(1);
+    setView({ ...EMPTY_FILTERS });
   };
 
   const activeFilterCount =
-    Object.entries(filters).filter(
+    Object.entries(view).filter(
       ([key, value]) =>
-        !["sortBy", "order"].includes(key) && value !== "" && value !== "all"
+        !["sortBy", "order", "page", "search"].includes(key) &&
+        value !== "" &&
+        value !== "all"
     ).length + (searchQuery.trim() ? 1 : 0);
 
   const paginate = (page) => {
@@ -159,7 +171,7 @@ const ManageInvoice = () => {
       return;
     }
 
-    setCurrentPage(page);
+    setView({ page });
   };
 
   const handleSort = (key) => {
@@ -193,7 +205,7 @@ const ManageInvoice = () => {
           Notiflix.Notify.success(resp?.message || "Staff deleted successfully");
 
           if (userList.length === 1 && currentPage > 1) {
-            setCurrentPage((prev) => prev - 1);
+            setView((previous) => ({ page: previous.page - 1 }));
           } else {
             await GetStaffDetails();
           }
@@ -204,7 +216,7 @@ const ManageInvoice = () => {
         setDeletingStaffId("");
       }
     },
-    [currentPage, deletingStaffId, dispatch, GetStaffDetails, setCurrentPage, userList.length]
+    [currentPage, deletingStaffId, dispatch, GetStaffDetails, setView, userList.length]
   );
 
   const openAuditReport = (staff) => {
@@ -279,7 +291,7 @@ const ManageInvoice = () => {
       setConvertPreview(null);
 
       if (userList.length === 1 && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1);
+        setView((previous) => ({ page: previous.page - 1 }));
       } else {
         await GetStaffDetails();
       }
@@ -416,7 +428,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">Approval</Form.Label>
               <Form.Select
-                value={filters.isApproved}
+                value={view.isApproved}
                 onChange={(e) => setFilter("isApproved", e.target.value)}
               >
                 <option value="all">All</option>
@@ -435,7 +447,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">Presence</Form.Label>
               <Form.Select
-                value={filters.status}
+                value={view.status}
                 onChange={(e) => setFilter("status", e.target.value)}
               >
                 <option value="all">All</option>
@@ -454,7 +466,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">Verified</Form.Label>
               <Form.Select
-                value={filters.isVerified}
+                value={view.isVerified}
                 onChange={(e) => setFilter("isVerified", e.target.value)}
               >
                 <option value="all">All</option>
@@ -466,7 +478,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">Chat</Form.Label>
               <Form.Select
-                value={filters.isChatEnabled}
+                value={view.isChatEnabled}
                 onChange={(e) => setFilter("isChatEnabled", e.target.value)}
               >
                 <option value="all">All</option>
@@ -478,7 +490,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">Language</Form.Label>
               <Form.Select
-                value={filters.language}
+                value={view.language}
                 onChange={(e) => setFilter("language", e.target.value)}
               >
                 <option value="all">All languages</option>
@@ -491,7 +503,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">City</Form.Label>
               <Form.Select
-                value={filters.city}
+                value={view.city}
                 onChange={(e) => setFilter("city", e.target.value)}
               >
                 <option value="all">All cities</option>
@@ -504,7 +516,7 @@ const ManageInvoice = () => {
             <Col xs={6} md={3} lg={2}>
               <Form.Label className="fw-semibold small mb-1">Call type</Form.Label>
               <Form.Select
-                value={filters.callType}
+                value={view.callType}
                 onChange={(e) => setFilter("callType", e.target.value)}
               >
                 <option value="all">All call types</option>
@@ -518,8 +530,8 @@ const ManageInvoice = () => {
               <Form.Label className="fw-semibold small mb-1">Joined from</Form.Label>
               <Form.Control
                 type="date"
-                value={filters.fromDate}
-                max={filters.toDate || undefined}
+                value={view.fromDate}
+                max={view.toDate || undefined}
                 onChange={(e) => setFilter("fromDate", e.target.value)}
               />
             </Col>
@@ -528,8 +540,8 @@ const ManageInvoice = () => {
               <Form.Label className="fw-semibold small mb-1">Joined to</Form.Label>
               <Form.Control
                 type="date"
-                value={filters.toDate}
-                min={filters.fromDate || undefined}
+                value={view.toDate}
+                min={view.fromDate || undefined}
                 onChange={(e) => setFilter("toDate", e.target.value)}
               />
             </Col>
@@ -540,7 +552,7 @@ const ManageInvoice = () => {
                 type="number"
                 min="0"
                 placeholder="0"
-                value={filters.minEarnings}
+                value={view.minEarnings}
                 onChange={(e) => setFilter("minEarnings", e.target.value)}
               />
             </Col>
@@ -551,7 +563,7 @@ const ManageInvoice = () => {
                 type="number"
                 min="0"
                 placeholder="Any"
-                value={filters.maxEarnings}
+                value={view.maxEarnings}
                 onChange={(e) => setFilter("maxEarnings", e.target.value)}
               />
             </Col>
@@ -560,7 +572,7 @@ const ManageInvoice = () => {
               <Form.Label className="fw-semibold small mb-1">Sort by</Form.Label>
               <div className="d-flex gap-2">
                 <Form.Select
-                  value={filters.sortBy}
+                  value={view.sortBy}
                   onChange={(e) => setFilter("sortBy", e.target.value)}
                 >
                   <option value="createdAt">Joined date</option>
@@ -571,7 +583,7 @@ const ManageInvoice = () => {
                 </Form.Select>
                 <Form.Select
                   style={{ maxWidth: 140 }}
-                  value={filters.order}
+                  value={view.order}
                   onChange={(e) => setFilter("order", e.target.value)}
                 >
                   <option value="desc">High to low</option>

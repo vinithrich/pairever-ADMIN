@@ -3,6 +3,7 @@ import Link from "next/link";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
+import useResetPageOnChange from "@/hooks/useResetPageOnChange";
 import { GetOverallCallHistoryApi } from "@/helper/Redux/ReduxThunk/Homepage";
 import { sortRows } from "@/helper/tableSort";
 import { useRouter } from "next/router";
@@ -166,6 +167,8 @@ const OverallCallHistoryPage = () => {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [debouncedFilters, setDebouncedFilters] = useState(DEFAULT_FILTERS);
   const [currentPage, setCurrentPage] = useUrlPageState();
+  const resetPageOnSearchChange = useResetPageOnChange(setCurrentPage, searchInput);
+  const resetPageOnFilterChange = useResetPageOnChange(setCurrentPage, filters);
   const [sortConfig, setSortConfig] = useState({
     key: "createdAt",
     direction: "desc",
@@ -179,7 +182,7 @@ const OverallCallHistoryPage = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
-      setCurrentPage(1);
+      resetPageOnSearchChange(searchInput);
     }, 400);
 
     return () => clearTimeout(timeoutId);
@@ -202,7 +205,7 @@ const OverallCallHistoryPage = () => {
           ? previousFilters
           : nextFilters
       );
-      setCurrentPage(1);
+      resetPageOnFilterChange(filters);
     }, 400);
 
     return () => clearTimeout(timeoutId);

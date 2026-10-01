@@ -18,6 +18,7 @@ import Notiflix from "notiflix";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
+import useResetPageOnChange from "@/hooks/useResetPageOnChange";
 import { GetUserReportListApi } from "@/helper/Redux/ReduxThunk/Homepage";
 
 const REPORT_TYPES = [
@@ -93,11 +94,12 @@ const UserReportsPage = () => {
   });
 
   const limit = 10;
+  const resetPageOnSearchChange = useResetPageOnChange(setCurrentPage, searchInput);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
-      setCurrentPage(1);
+      resetPageOnSearchChange(searchInput);
     }, 400);
 
     return () => clearTimeout(timeoutId);

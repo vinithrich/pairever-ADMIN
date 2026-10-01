@@ -2,6 +2,7 @@ import { PageHeading } from "@/widgets";
 import Link from "next/link";
 import TablePagination from "@/components/TablePagination";
 import useUrlPageState from "@/hooks/useUrlPageState";
+import useResetPageOnChange from "@/hooks/useResetPageOnChange";
 import apiHelper from "@/helper/apiHelper";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -100,11 +101,13 @@ const StaffSpeakingReportsPage = () => {
   // Responses can land out of order when filters change quickly; only the newest
   // request is allowed to write state.
   const requestRef = useRef(0);
+  const resetPageOnSearchChange = useResetPageOnChange(setCurrentPage, searchInput);
+  const resetPageOnFilterChange = useResetPageOnChange(setCurrentPage, filters);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchInput.trim());
-      setCurrentPage(1);
+      resetPageOnSearchChange(searchInput);
     }, 400);
     return () => clearTimeout(timer);
   }, [searchInput, setCurrentPage]);
@@ -112,7 +115,7 @@ const StaffSpeakingReportsPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedFilters(filters);
-      setCurrentPage(1);
+      resetPageOnFilterChange(filters);
     }, 400);
     return () => clearTimeout(timer);
   }, [filters, setCurrentPage]);

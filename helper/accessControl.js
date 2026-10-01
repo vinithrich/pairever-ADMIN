@@ -3,6 +3,8 @@ export const ROUTE_ACCESS = [
   { path: "/user-management", accessKey: "userManagement" },
   { path: "/staff-management", accessKey: "staffManagement" },
   { path: "/leaderboard", accessKey: "leaderboard" },
+  { path: "/language-order", accessKey: "languageOrder" },
+  { path: "/night-call-bonus", accessKey: "nightCallBonus" },
   { path: "/shift-reward-management", accessKey: "shiftRewards" },
   { path: "/task-campaign-management", accessKey: "taskCampaigns" },
   { path: "/staff-gifts", accessKey: "staffGifts" },

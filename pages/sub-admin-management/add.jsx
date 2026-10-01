@@ -21,6 +21,8 @@ const ACCESS_OPTIONS = [
   { key: "shiftRewards", label: "Shift Reward Rules" },
   { key: "taskCampaigns", label: "Task Campaigns & Rewards" },
   { key: "leaderboard", label: "Leaderboard" },
+  { key: "languageOrder", label: "Language Order" },
+  { key: "nightCallBonus", label: "Night Call Bonus" },
   { key: "callGifts", label: "Call Gifts" },
   { key: "depositHistory", label: "Deposit History" },
   { key: "withdrawManagement", label: "Withdraw Management" },
