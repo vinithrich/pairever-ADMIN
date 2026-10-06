@@ -63,9 +63,9 @@
     color: $white !important;
 }
 .btn{
-    color: #12151c;
-    background-image: linear-gradient(135deg, $brand-lime-start 0%, $brand-lime-end 100%);
-    background-color: $brand-lime-end;
+    color: var(--app-accent-ink, #12151c);
+    background-image: linear-gradient(135deg, var(--app-accent-start, #{$brand-lime-start}) 0%, var(--app-accent-end, #{$brand-lime-end}) 100%);
+    background-color: var(--app-accent-end, #{$brand-lime-end});
     border-color: transparent;
     box-shadow: 0 10px 24px rgba(174, 204, 0, 0.22);
     font-weight: 600;
@@ -76,9 +76,11 @@
 .btn:active,
 .btn-check:checked + .btn,
 .btn.show {
-    color: #12151c;
-    background-image: linear-gradient(135deg, lighten($brand-lime-start, 2%) 0%, darken($brand-lime-end, 4%) 100%);
-    background-color: darken($brand-lime-end, 4%);
+    color: var(--app-accent-ink, #12151c);
+    background-image: linear-gradient(135deg,
+      var(--app-accent-start-hover, #{lighten($brand-lime-start, 2%)}) 0%,
+      var(--app-accent-end-hover, #{darken($brand-lime-end, 4%)}) 100%);
+    background-color: var(--app-accent-end-hover, #{darken($brand-lime-end, 4%)});
     border-color: transparent;
     transform: translateY(-1px);
 }

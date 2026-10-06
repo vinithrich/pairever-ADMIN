@@ -37,7 +37,7 @@
   font-size: 25px;
 }
 .text-green {
-  color: $brand-lime-start;
+  color: var(--app-accent-start, #{$brand-lime-start});
 }
 .login-card {
   background: rgba(23, 27, 36, 0.96);

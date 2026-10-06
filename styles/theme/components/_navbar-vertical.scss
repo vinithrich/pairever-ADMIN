@@ -42,7 +42,7 @@
   }
 
   .simplebar-scrollbar::before {
-    background: rgba($brand-lime-end, 0.75);
+    background: var(--app-accent-soft, #{rgba($brand-lime-end, 0.75)});
     opacity: 1;
   }
 
@@ -89,24 +89,24 @@
         &:hover {
           color: $white;
           background: rgba($white, 0.05);
-          border-left-color: $brand-lime-end;
+          border-left-color: var(--app-accent-end, #{$brand-lime-end});
         }
 
         &:hover .nav-icon {
-          color: $brand-lime-start;
+          color: var(--app-accent-start, #{$brand-lime-start});
           opacity: 1;
         }
 
         &.active {
-          color: #12151c;
-          background: linear-gradient(135deg, $brand-lime-start 0%, $brand-lime-end 100%);
+          color: var(--app-accent-ink, #12151c);
+          background: linear-gradient(135deg, var(--app-accent-start, #{$brand-lime-start}) 0%, var(--app-accent-end, #{$brand-lime-end}) 100%);
           border-left-color: $primary;
-          box-shadow: 0 12px 24px rgba(174, 204, 0, 0.22);
+          box-shadow: 0 12px 24px var(--app-accent-glow, rgba(174, 204, 0, 0.22));
 
         }
 
         &.active .nav-icon {
-          color: #12151c;
+          color: var(--app-accent-ink, #12151c);
           opacity: 1;
         }
       }
@@ -160,7 +160,7 @@
           }
 
           &.active {
-            color: $brand-lime-start;
+            color: var(--app-accent-start, #{$brand-lime-start});
           }
         }
 
@@ -175,7 +175,7 @@
               }
 
               &.active {
-                color: $brand-lime-start;
+                color: var(--app-accent-start, #{$brand-lime-start});
               }
             }
 

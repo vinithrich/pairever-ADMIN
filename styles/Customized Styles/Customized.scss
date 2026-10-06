@@ -1,3 +1,5 @@
+@import "app-theme";
+
 .dashboard-home {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -15,8 +17,10 @@
 .upload-generate-btn {
   padding: 5px 10px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #eafe76 0%, #aecc00 100%);
-  color: #12151c;
+  background: linear-gradient(135deg,
+    var(--app-accent-start, #eafe76) 0%,
+    var(--app-accent-end, #aecc00) 100%);
+  color: var(--app-accent-ink, #12151c);
   border: none;
 }
 
@@ -318,7 +322,7 @@
   h3 {
     font-size: 20px;
     font-weight: 600;
-    color: #eafe76;
+    color: var(--app-accent-start, #eafe76);
     margin-bottom: 0;
   }
   h4 {

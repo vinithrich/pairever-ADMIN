@@ -9,10 +9,37 @@ import DefaultDashboardLayout from "@/layouts/DefaultDashboardLayout";
 import GlobalLoader from "@/components/GlobalLoader";
 import { AuthProvider, useAuth } from "@/helper/Context/AuthContext";
 import { canAccessPath, getFirstAllowedPath } from "@/helper/accessControl";
+import { readSelectedApp } from "@/helper/appName";
 import "../styles/theme.scss";
 import "../styles/Customized Styles/Customized.scss";
 
 const PUBLIC_ROUTES = ["/", "/404", "/privacy-policy"];
+
+// Paints the panel in the selected app's colours by setting data-app on <html>,
+// which the accent variables in styles/Customized Styles/_app-theme.scss key off.
+// PairEver has no overrides — it uses the defaults, so it looks exactly as before.
+const AppThemeSync = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    const sync = () => {
+      const app = readSelectedApp();
+      document.documentElement.setAttribute("data-app", app);
+    };
+
+    sync();
+    // Switch App writes to localStorage and router.push()es, so re-read on every
+    // navigation as well as on a change made in another tab.
+    window.addEventListener("storage", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, [router.asPath]);
+
+  return null;
+};
 
 const PageFallback = () => (
   <div style={{ minHeight: "100vh", background: "#fff" }} />
@@ -126,6 +153,8 @@ function MyApp({ Component, pageProps }) {
           site_name: process.env.siteName,
         }}
       />
+
+      <AppThemeSync />
 
       <AuthProvider>
         <RouteGuard>

@@ -1,0 +1,93 @@
+// =============================================================================
+// Per-app accent theme
+//
+// The panel's accent (sidebar active item, primary buttons, headings, focus
+// rings) follows whichever app is selected in Switch App. The colours are the
+// same gradients the Select App cards use, so the panel matches the app you are
+// administering.
+//
+// Values live in CSS custom properties rather than SCSS variables because the
+// app is chosen at runtime; SCSS is compiled once at build time. `data-app` is
+// set on <html> by pages/_app.js.
+//
+// Generated to match the SCSS lighten()/darken() output the buttons and forms
+// used before, so PairEver is pixel-identical to the previous theme.
+// =============================================================================
+// PairEver's values are the defaults, so an unthemed panel renders
+// exactly as it did before.
+:root {
+  --app-accent-start: #eafe76;
+  --app-accent-end: #aecc00;
+  --app-accent-start-hover: #ecfe80;
+  --app-accent-end-hover: #9db800;
+  --app-accent-soft: rgba(174, 204, 0, 0.75);
+  --app-accent-glow: rgba(174, 204, 0, 0.22);
+  --app-accent-ink: #12151c;
+}
+
+// Flamez
+html[data-app="1"] {
+  --app-accent-start: #ff4b4b;
+  --app-accent-end: #ff007b;
+  --app-accent-start-hover: #ff5555;
+  --app-accent-end-hover: #eb0071;
+  --app-accent-soft: rgba(255, 0, 123, 0.75);
+  --app-accent-glow: rgba(255, 0, 123, 0.22);
+  --app-accent-ink: #12151c;
+}
+
+// Bonding
+html[data-app="2"] {
+  --app-accent-start: #00c896;
+  --app-accent-end: #007bff;
+  --app-accent-start-hover: #00d29e;
+  --app-accent-end-hover: #0071eb;
+  --app-accent-soft: rgba(0, 123, 255, 0.75);
+  --app-accent-glow: rgba(0, 123, 255, 0.22);
+  --app-accent-ink: #12151c;
+}
+
+// Heylove
+html[data-app="3"] {
+  --app-accent-start: #ff007b;
+  --app-accent-end: #9333ea;
+  --app-accent-start-hover: #ff0a80;
+  --app-accent-end-hover: #8921e8;
+  --app-accent-soft: rgba(147, 51, 234, 0.75);
+  --app-accent-glow: rgba(147, 51, 234, 0.22);
+  --app-accent-ink: #ffffff;
+}
+
+// Doly
+html[data-app="4"] {
+  --app-accent-start: #ffaa00;
+  --app-accent-end: #ff5500;
+  --app-accent-start-hover: #ffad0a;
+  --app-accent-end-hover: #eb4e00;
+  --app-accent-soft: rgba(255, 85, 0, 0.75);
+  --app-accent-glow: rgba(255, 85, 0, 0.22);
+  --app-accent-ink: #12151c;
+}
+
+// Bestie
+html[data-app="5"] {
+  --app-accent-start: #00b4d8;
+  --app-accent-end: #0077b6;
+  --app-accent-start-hover: #00bce2;
+  --app-accent-end-hover: #006aa2;
+  --app-accent-soft: rgba(0, 119, 182, 0.75);
+  --app-accent-glow: rgba(0, 119, 182, 0.22);
+  --app-accent-ink: #12151c;
+}
+
+// Flirt Fling
+html[data-app="8"] {
+  --app-accent-start: #ff4d94;
+  --app-accent-end: #c2185b;
+  --app-accent-start-hover: #ff579a;
+  --app-accent-end-hover: #b01652;
+  --app-accent-soft: rgba(194, 24, 91, 0.75);
+  --app-accent-glow: rgba(194, 24, 91, 0.22);
+  --app-accent-ink: #ffffff;
+}
+

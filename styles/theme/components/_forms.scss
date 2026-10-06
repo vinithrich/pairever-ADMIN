@@ -86,14 +86,16 @@ select option {
 }
 
 .form-control[type="file"]::file-selector-button {
-  color: #12151c;
-  background: linear-gradient(135deg, $brand-lime-start 0%, $brand-lime-end 100%);
+  color: var(--app-accent-ink, #12151c);
+  background: linear-gradient(135deg, var(--app-accent-start, #{$brand-lime-start}) 0%, var(--app-accent-end, #{$brand-lime-end}) 100%);
   border: 0;
   margin-right: 1rem;
 }
 
 .form-control[type="file"]:hover::file-selector-button {
-  background: linear-gradient(135deg, lighten($brand-lime-start, 2%) 0%, darken($brand-lime-end, 4%) 100%);
+  background: linear-gradient(135deg,
+    var(--app-accent-start-hover, #{lighten($brand-lime-start, 2%)}) 0%,
+    var(--app-accent-end-hover, #{darken($brand-lime-end, 4%)}) 100%);
 }
 
 .input-group-text {

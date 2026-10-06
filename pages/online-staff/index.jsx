@@ -2,7 +2,7 @@ import { PageHeading } from "@/widgets";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Col, Row, Container, Form, Card, Table, Button } from "react-bootstrap";
+import { Badge, Col, Row, Container, Form, Card, Table, Button } from "react-bootstrap";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
@@ -35,6 +35,9 @@ const OnlineStaffPage = () => {
   const [rawStaffList, setRawStaffList] = useState([]);
   const [currentPage, setCurrentPage] = useUrlPageState();
   const [searchQuery, setSearchQuery] = useState("");
+  // all | available | busy. The roster already carries isBusy, so this filters the
+  // in-memory list — no refetch, and it stays correct as the socket pushes updates.
+  const [availability, setAvailability] = useState("all");
   // Rows with a status change in flight, so a switch cannot be double-clicked.
   const [pendingIds, setPendingIds] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -169,6 +172,12 @@ const OnlineStaffPage = () => {
     setCurrentPage(1);
   };
 
+  const selectAvailability = (value) => {
+    setAvailability(value);
+    // Page 3 of "all" is rarely page 3 of "busy".
+    setCurrentPage(1);
+  };
+
   const paginate = (page) => {
     if (page < 1 || page > totalPages || page === currentPage) {
       return;
@@ -193,6 +202,10 @@ const OnlineStaffPage = () => {
     const list = Array.isArray(rawStaffList) ? rawStaffList : [];
     return list.filter((user) => {
       if (!user) return false;
+
+      if (availability === "busy" && !user.isBusy) return false;
+      if (availability === "available" && user.isBusy) return false;
+
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const name = (user.name || "").toLowerCase();
@@ -210,7 +223,7 @@ const OnlineStaffPage = () => {
       }
       return true;
     });
-  }, [rawStaffList, searchQuery]);
+  }, [availability, rawStaffList, searchQuery]);
 
   // Sort the filtered staff roster based on the selected table headers.
   // WHY: Provides custom columns sorting capability.
@@ -273,19 +286,40 @@ const OnlineStaffPage = () => {
       {/* Live counts, straight from the socket roster. */}
       <Row className="g-3 mb-4">
         {[
-          { label: "Online now", value: rawStaffList.length, cls: "text-success" },
-          { label: "On a call", value: busyCount, cls: "text-danger" },
-          { label: "Available", value: rawStaffList.length - busyCount, cls: "" },
-        ].map((card) => (
-          <Col key={card.label} xs={6} md={3}>
-            <Card className="border-0 shadow-sm h-100">
-              <Card.Body className="py-3">
-                <div className="text-muted small">{card.label}</div>
-                <div className={`fs-3 fw-bold ${card.cls}`}>{card.value}</div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
+          { key: "all", label: "Online now", value: rawStaffList.length, cls: "text-success" },
+          { key: "busy", label: "On a call", value: busyCount, cls: "text-danger" },
+          { key: "available", label: "Available", value: rawStaffList.length - busyCount, cls: "" },
+        ].map((card) => {
+          const isActive = availability === card.key;
+          return (
+            <Col key={card.key} xs={6} md={3}>
+              {/* The cards already name the three states, so they are the filter —
+                  one control instead of a card row plus a redundant dropdown. */}
+              <Card
+                role="button"
+                tabIndex={0}
+                aria-pressed={isActive}
+                onClick={() => selectAvailability(card.key)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    selectAvailability(card.key);
+                  }
+                }}
+                className={`shadow-sm h-100 ${isActive ? "border-primary" : "border-0"}`}
+                style={{ cursor: "pointer", borderWidth: isActive ? 2 : undefined }}
+              >
+                <Card.Body className="py-3">
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <div className="text-muted small">{card.label}</div>
+                    {isActive && <Badge bg="primary">Showing</Badge>}
+                  </div>
+                  <div className={`fs-3 fw-bold ${card.cls}`}>{card.value}</div>
+                </Card.Body>
+              </Card>
+            </Col>
+          );
+        })}
       </Row>
 
       <div className="d-flex justify-content-between w-100 align-items-end flex-wrap gap-3">
@@ -298,6 +332,18 @@ const OnlineStaffPage = () => {
               value={searchQuery}
               onChange={handleSearch}
             />
+          </div>
+
+          <div>
+            <Form.Label className="text-white fw-bold">Show</Form.Label>
+            <Form.Select
+              value={availability}
+              onChange={(e) => selectAvailability(e.target.value)}
+            >
+              <option value="all">All online ({rawStaffList.length})</option>
+              <option value="available">Available ({rawStaffList.length - busyCount})</option>
+              <option value="busy">On a call ({busyCount})</option>
+            </Form.Select>
           </div>
         </Form>
 
