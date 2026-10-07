@@ -1,14 +1,14 @@
 import { PageHeading } from "@/widgets";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Col, Row, Container, Form, Card, Table, Button } from "react-bootstrap";
 import TablePagination from "@/components/TablePagination";
 import SortableHeader from "@/components/SortableHeader";
 import useUrlPageState from "@/hooks/useUrlPageState";
 import { sortRows } from "@/helper/tableSort";
 import { getSocket } from "@/helper/socket";
-import { postRequest } from "@/helper/apiHelper";
+import { getRequest, postRequest } from "@/helper/apiHelper";
 import { errorToast, successToast } from "@/components/custom-toast";
 
 // Helper function to format the staff's earnings cleanly to two decimal places.
@@ -38,6 +38,9 @@ const OnlineStaffPage = () => {
   // all | available | busy. The roster already carries isBusy, so this filters the
   // in-memory list — no refetch, and it stays correct as the socket pushes updates.
   const [availability, setAvailability] = useState("all");
+  // memberID -> { staffEarned, pendingBalance }. Fetched separately because the
+  // socket roster is broadcast to users too, so it must not carry staff earnings.
+  const [earnings, setEarnings] = useState({});
   // Rows with a status change in flight, so a switch cannot be double-clicked.
   const [pendingIds, setPendingIds] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -165,6 +168,20 @@ const OnlineStaffPage = () => {
     };
   }, []);
 
+  const loadEarnings = useCallback(async () => {
+    const resp = await getRequest("online-staff-earnings");
+    if (resp?.status) setEarnings(resp.data || {});
+  }, []);
+
+  // On mount, and again whenever the roster changes size — someone coming online
+  // needs their figure too.
+  useEffect(() => {
+    loadEarnings();
+  }, [loadEarnings, rawStaffList.length]);
+
+  const earnedFor = (user) =>
+    earnings[user?.memberID]?.staffEarned ?? user?.staffEarned ?? 0;
+
   const busyCount = rawStaffList.filter((s) => s.isBusy).length;
 
   const handleSearch = (e) => {
@@ -236,7 +253,7 @@ const OnlineStaffPage = () => {
       name: (user) => user.name || "",
       phone: (user) => user.phone || "",
       dob: (user) => user.dob || "",
-      staffEarned: (user) => user.staffEarned ?? 0,
+      staffEarned: (user) => earnedFor(user),
       isBusy: (user) => (user.isBusy ? 1 : 0),
       status: (user) => (user.isOnline ? 1 : 0),
       createdAt: (user) => user.createdAt || "",
@@ -360,7 +377,10 @@ const OnlineStaffPage = () => {
           <Button
             size="sm"
             variant="outline-secondary"
-            onClick={() => getSocket().emit("get_all_staff")}
+            onClick={() => {
+              getSocket().emit("get_all_staff");
+              loadEarnings();
+            }}
           >
             Refresh
           </Button>
@@ -407,7 +427,7 @@ const OnlineStaffPage = () => {
                       </td>
                       <td>{user.phone || "-"}</td>
                       <td>{user.dob || "-"}</td>
-                      <td>{formatAmount(user.staffEarned)}</td>
+                      <td>{formatAmount(earnedFor(user))}</td>
                       <td>
                         <span className={`badge ${user.isBusy ? "bg-danger" : "bg-success"}`}>
                           {user.isBusy ? "True" : "False"}

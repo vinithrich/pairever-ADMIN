@@ -126,6 +126,13 @@ export const DashboardMenu = [
   },
   {
     id: uuid(),
+    title: "Blocked Staff",
+    icon: "slash",
+    link: "/blocked-staff",
+    accessKey: "staffManagement",
+  },
+  {
+    id: uuid(),
     title: "Night Call Bonus",
     icon: "moon",
     link: "/night-call-bonus",

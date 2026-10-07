@@ -16,6 +16,7 @@ import {
 import { useDispatch } from "react-redux";
 import Notiflix from "notiflix";
 import SortableHeader from "@/components/SortableHeader";
+import apiHelper from "@/helper/apiHelper";
 import { sortRows } from "@/helper/tableSort";
 import {
   GetSingleStaffApi,
@@ -32,6 +33,9 @@ const StaffDetail = () => {
   const dispatch = useDispatch();
 
   const [staff, setStaff] = useState(null);
+  // Admin restrictions. Mirrors the four scopes the backend accepts.
+  const [blockForm, setBlockForm] = useState({ scope: "all", mode: "permanent", days: 7, reason: "" });
+  const [isBlockSaving, setIsBlockSaving] = useState(false);
   const [callHistory, setCallHistory] = useState([]);
   const [withdrawHistory, setWithdrawHistory] = useState([]);
   const [callSortConfig, setCallSortConfig] = useState({
@@ -213,6 +217,50 @@ const StaffDetail = () => {
   const openEditModal = () => {
     setFormData(buildFormData(staff));
     setShowEditModal(true);
+  };
+
+  const BLOCK_SCOPES = [
+    { key: "all", label: "Hide from users", help: "Staff stays, but disappears from the user app entirely." },
+    { key: "video", label: "Block video calls", help: "Video call button hidden for this staff." },
+    { key: "audio", label: "Block audio calls", help: "Audio call button hidden for this staff." },
+    { key: "chat", label: "Block chat", help: "Chat hidden, and the chat API refuses." },
+  ];
+
+  const blockState = staff?.adminBlocks || {};
+  const isBlockActive = (scope) => {
+    const b = blockState[scope];
+    if (!b) return false;
+    return Boolean(b.permanent) || Boolean(b.until && new Date(b.until) > new Date());
+  };
+  const blockDetail = (scope) => {
+    const b = blockState[scope] || {};
+    if (b.permanent) return "Permanent";
+    if (b.until && new Date(b.until) > new Date()) {
+      return `Until ${new Date(b.until).toLocaleString()}`;
+    }
+    return "Not blocked";
+  };
+
+  const submitBlock = async (mode, scopeOverride) => {
+    const scope = scopeOverride || blockForm.scope;
+    setIsBlockSaving(true);
+    try {
+      const resp = await apiHelper.postRequest("staff-block", {
+        staffId: userId,
+        scope,
+        mode,
+        days: blockForm.days,
+        reason: blockForm.reason,
+      });
+      if (resp?.status) {
+        Notiflix.Notify.success(resp.message || "Updated");
+        await fetchStaff();
+      } else {
+        Notiflix.Notify.failure(resp?.message || "Failed to update block");
+      }
+    } finally {
+      setIsBlockSaving(false);
+    }
   };
 
   const openNotifyModal = () => {
@@ -799,6 +847,102 @@ const StaffDetail = () => {
             <b>Last Updated:</b> {new Date(staff.updatedAt).toLocaleString()}
           </p>
           <p><b>IP Address:</b> {staff.ip}</p>
+        </Card.Body>
+      </Card>
+
+      {/* ---------------- Admin restrictions ---------------- */}
+      <Card className="mt-4 shadow-sm">
+        <Card.Header>
+          <h5 className="mb-0">Restrictions</h5>
+          <small className="text-muted">
+            Blocking never deletes the staff member — their account, history and earnings
+            stay. It only stops them being offered to users. A timed block lifts itself.
+          </small>
+        </Card.Header>
+
+        <Card.Body>
+          {/* Set these first — the Block buttons below read them. */}
+          <Row className="g-3 align-items-end mb-4">
+            <Col xs={6} md={3}>
+              <Form.Label className="fw-semibold small mb-1">Days (for timed blocks)</Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                value={blockForm.days}
+                onChange={(e) => setBlockForm((p) => ({ ...p, days: e.target.value }))}
+              />
+            </Col>
+            <Col xs={12} md={9}>
+              <Form.Label className="fw-semibold small mb-1">Reason (optional, stored with the block)</Form.Label>
+              <Form.Control
+                placeholder="e.g. repeated complaints from users"
+                value={blockForm.reason}
+                onChange={(e) => setBlockForm((p) => ({ ...p, reason: e.target.value }))}
+              />
+            </Col>
+          </Row>
+
+          <Table responsive className="align-middle mb-0">
+            <thead className="table-light">
+              <tr>
+                <th>Restriction</th>
+                <th>Status</th>
+                <th className="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {BLOCK_SCOPES.map((item) => {
+                const active = isBlockActive(item.key);
+                return (
+                  <tr key={item.key}>
+                    <td>
+                      <div className="fw-semibold">{item.label}</div>
+                      <div className="text-muted small">{item.help}</div>
+                    </td>
+                    <td>
+                      <Badge bg={active ? "danger" : "secondary"}>
+                        {active ? "Blocked" : "Allowed"}
+                      </Badge>
+                      <div className="text-muted small mt-1">{blockDetail(item.key)}</div>
+                    </td>
+                    <td className="text-end">
+                      {active ? (
+                        <Button
+                          size="sm"
+                          variant="outline-success"
+                          disabled={isBlockSaving}
+                          onClick={() => submitBlock("clear", item.key)}
+                        >
+                          Lift block
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline-danger"
+                            className="me-2"
+                            disabled={isBlockSaving}
+                            onClick={() => submitBlock("temporary", item.key)}
+                          >
+                            Block {blockForm.days}d
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            disabled={isBlockSaving}
+                            onClick={() => submitBlock("permanent", item.key)}
+                          >
+                            Permanent
+                          </Button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+
         </Card.Body>
       </Card>
 
